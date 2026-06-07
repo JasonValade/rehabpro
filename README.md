@@ -1,16 +1,66 @@
-# React + Vite
+# RehabPro
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+RehabPro is a React + Vite rehabilitation dashboard prototype for patient and physical therapist workflows. The app includes a lightweight Express backend, local state persistence, and a shared UI layer for tracking workouts, progress, reports, and PT messaging.
 
-Currently, two official plugins are available:
+## What this repo includes
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/`: React application entrypoints, views, hooks, and UI components
+- `server/`: Express API server for patients, exercises, reports, milestones, and chat
+- `vite.config.ts`: Vite dev server configuration and Vitest test runner setup
+- `tsconfig.json`: TypeScript workspace configuration
+- `eslint.config.js`: ESLint flat config supporting TypeScript and React
+- `prettier` via `.prettierrc` for consistent formatting
 
-## React Compiler
+## Getting started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
+2. Start the backend API server:
+   ```bash
+   npm run dev:server
+   ```
+3. Start the frontend development server:
+   ```bash
+   npm run dev
+   ```
+4. Open the app in the browser:
+   ```text
+   http://localhost:5173
+   ```
 
-## Expanding the ESLint configuration
+## Backend configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+The backend server reads environment values from `.env`.
+
+- `ANTHROPIC_API_KEY`: required for `/api/chat`
+- `BACKEND_API_KEY`: optional request guard for write endpoints
+- `CORS_ORIGIN`: default is `http://localhost:5173`
+
+If this repo includes `.env.example`, copy it to `.env` and fill in any required values.
+
+## Scripts
+
+- `npm run dev` — start Vite frontend
+- `npm run dev:server` — start Express backend
+- `npm run build` — build the frontend
+- `npm run preview` — preview production build
+- `npm run lint` — run ESLint
+- `npm run lint:fix` — auto-fix lint issues
+- `npm run typecheck` — run TypeScript type checks
+- `npm run test` — run Vitest tests
+- `npm run test:watch` — run tests in watch mode
+- `npm run format` — format project files with Prettier
+
+## Architecture notes
+
+- The UI is a single-page React app powered by Vite and React 19.
+- The project now supports TypeScript through `tsconfig.json` and TS-aware linting.
+- ESLint is configured for React, TypeScript, hooks, and Vite refresh compatibility.
+- Vitest with React Testing Library covers component behavior and app smoke tests.
+- The backend server is intentionally lightweight and designed as a mock API layer for local development.
+
+## Notes
+
+The project is ready for incremental TypeScript migration. Existing JS and JSX files are still supported, while new files should be authored as `.ts`/`.tsx` for stronger type safety.

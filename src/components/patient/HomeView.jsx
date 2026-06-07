@@ -2,7 +2,14 @@ import { Tag } from "../ui/Tag";
 import { StatBox } from "../ui/StatBox";
 import { C } from "../../constants/colors";
 
-export function HomeView({ rehabItems, gymItems, milestones, ptMessage, lockedExercises }) {
+/**
+ * @typedef {{ workout: string; highlight: string; details: string }} ScheduleItem
+ */
+
+/**
+ * @param {{ rehabItems: any[]; gymItems: any[]; milestones: any[]; ptMessage: { time: string; text: string }; lockedExercises: any[]; schedule?: ScheduleItem[]; notification?: { latestCheckIn?: { concern: string } | null; unreadReports?: number } }} props
+ */
+export function HomeView({ rehabItems, gymItems, milestones, ptMessage, lockedExercises, schedule = [], notification = {} }) {
   const rehabDone = rehabItems.filter((i) => i.done).length;
   const gymDone = gymItems.filter((i) => i.done).length;
   const totalDone = rehabDone + gymDone;
@@ -55,9 +62,49 @@ export function HomeView({ rehabItems, gymItems, milestones, ptMessage, lockedEx
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <StatBox label="Recovery" value={milestonePct} unit="%" color={C.lime} sub={`${achieved}/${milestones.length} milestones`} />
         <StatBox label="Vertical" value={" +18"} unit="in" color={C.blue} sub="from baseline" />
+      </div>
+
+      <div style={{ display: "grid", gap: 10, marginTop: 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: "14px 16px" }}>
+          <div>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+              {notification.unreadReports ? "Report alert" : "Session reminder"}
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.5 }}>
+              {notification.unreadReports ? `You have ${notification.unreadReports} update${notification.unreadReports === 1 ? "" : "s"} from PT.` : notification.latestCheckIn ? notification.latestCheckIn.concern : "No new alerts. Keep progressing."}
+            </div>
+          </div>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.lime, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            {notification.unreadReports ? "Review now" : notification.latestCheckIn ? "Check-in logged" : "All clear"}
+          </div>
+        </div>
+
+        <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              Rehab workouts
+            </div>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime }}>{schedule.length} workouts this week</div>
+          </div>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginBottom: 12 }}>
+            This weekly plan stays active until your PT changes it.
+          </div>
+          {schedule.length > 0 && (
+            <div style={{ display: "grid", gap: 10 }}>
+              <div style={{ borderRadius: 14, padding: 16, background: C.deep, border: `1px solid ${C.rim}` }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                  <span style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 16, color: C.bone }}>Next workout</span>
+                  <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, letterSpacing: "0.08em" }}>{schedule.find((item) => item.highlight === "Active this week")?.highlight ?? "Planned"}</span>
+                </div>
+                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: C.bone, marginBottom: 8 }}>{schedule.find((item) => item.highlight === "Active this week")?.workout ?? schedule[0].workout}</div>
+                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, lineHeight: 1.5 }}>{schedule.find((item) => item.highlight === "Active this week")?.details ?? schedule[0].details}</div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div

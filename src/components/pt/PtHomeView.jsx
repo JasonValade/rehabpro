@@ -2,6 +2,13 @@ import { Tag } from "../ui/Tag";
 import { StatBox } from "../ui/StatBox";
 import { C } from "../../constants/colors";
 
+/**
+ * @typedef {{ workout: string; highlight: string; details: string }} ScheduleItem
+ */
+
+/**
+ * @param {{ patients: any[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; schedule?: ScheduleItem[]; unresolvedReports?: number; recentCheckIns?: number }} props
+ */
 function PatientCard({ patient, active, onClick }) {
   return (
     <button
@@ -60,7 +67,7 @@ function PatientCard({ patient, active, onClick }) {
   );
 }
 
-export function PtHomeView({ patients, selectedPatientId, onSelectPatient }) {
+export function PtHomeView({ patients, selectedPatientId, onSelectPatient, schedule = [], unresolvedReports = 0, recentCheckIns = 0 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
@@ -80,6 +87,34 @@ export function PtHomeView({ patients, selectedPatientId, onSelectPatient }) {
             onClick={() => onSelectPatient(patient.id)}
           />
         ))}
+      </div>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+              Alerts & reviews
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.4 }}>
+              {unresolvedReports} report{unresolvedReports === 1 ? "" : "s"} waiting review.
+            </div>
+          </div>
+          <div style={{ borderRadius: 12, padding: "8px 10px", background: C.redDim, color: C.red, fontFamily: "'Fira Code', monospace", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            {unresolvedReports} new
+          </div>
+        </div>
+        <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 14, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+              Fresh check-ins
+            </div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.4 }}>
+              {recentCheckIns} patient check-in{recentCheckIns === 1 ? "" : "s"} in the last 24h.
+            </div>
+          </div>
+          <div style={{ borderRadius: 12, padding: "8px 10px", background: C.blueDim, color: C.blue, fontFamily: "'Fira Code', monospace", fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            Active
+          </div>
+        </div>
       </div>
       <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10, alignItems: "center" }}>

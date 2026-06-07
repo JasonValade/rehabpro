@@ -1,20 +1,43 @@
 import { useState, useEffect, useRef } from "react";
 import { C } from "../../constants/colors";
-import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 
 const PT_SYSTEM = `You are Dr. Rivera, a sports-specialized physical therapist inside the RehabPro app. The patient is Jason — 20 years old, 6'2", competitive basketball player, 14 weeks post ACL + meniscus surgery (left knee). Current phase: Early Motion. He trains upper body daily and is focused on returning to full basketball performance — dunking, lateral cuts, explosiveness. He's been tracking vertical jump gains (+18 inches from baseline so far). He also trains on a PPL split for upper body.
 Be direct, specific, motivating. Talk like a sports PT who works with athletes, not a hospital doctor. Keep responses under 120 words.`;
 
+const DEFAULT_MESSAGES = [
+  {
+    role: "assistant",
+    content: "What's up Jason. Checked your session data — wall slides look solid. What do you need today?",
+  },
+];
+
 export function PTChat() {
-  const [messages, setMessages] = useLocalStorageState("rehabpro:ptChatMessages", [
-    {
-      role: "assistant",
-      content: "What's up Jason. Checked your session data — wall slides look solid. What do you need today?",
-    },
-  ]);
+  const [messages, setMessages] = useState(DEFAULT_MESSAGES);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        const res = await fetch("/api/chat/history?patientId=pt_jason");
+        if (!res.ok) throw new Error("Failed to load chat history");
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setMessages(
+            data.map((entry) => ({
+              role: entry.sender === "assistant" ? "assistant" : "user",
+              content: entry.text,
+            }))
+          );
+        }
+      } catch {
+        // Keep fallback history for offline behavior.
+      }
+    };
+
+    loadHistory();
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -25,24 +48,32 @@ export function PTChat() {
     if (!text || loading) return;
 
     setInput("");
+    setLoading(true);
     const updated = [...messages, { role: "user", content: text }];
     setMessages(updated);
-    setLoading(true);
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system: PT_SYSTEM,
-          messages: updated.map((m) => ({ role: m.role, content: m.content })),
+          patientId: "pt_jason",
+          text,
+          history: updated,
         }),
       });
       const data = await res.json();
-      const reply = data.content?.find((b) => b.type === "text")?.text || "Can't connect right now.";
-      setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      if (res.ok && Array.isArray(data.messages)) {
+        setMessages(
+          data.messages.map((entry) => ({
+            role: entry.sender === "assistant" ? "assistant" : "user",
+            content: entry.text,
+          }))
+        );
+      } else {
+        const reply = data.reply || "Can't connect right now.";
+        setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
+      }
     } catch {
       setMessages((prev) => [...prev, { role: "assistant", content: "Connection issue. Try again." }]);
     }
@@ -53,7 +84,7 @@ export function PTChat() {
   const QUICK = ["When can I start jumping?", "Knee feels tight today", "Can I add more leg work?"];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 200px)", gap: 10 }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 10 }}>
       <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 10, padding: "10px 14px", display: "flex", alignItems: "center", gap: 12 }}>
         <div
           style={{
@@ -88,7 +119,7 @@ export function PTChat() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
         {messages.map((m, i) => (
           <div key={i} style={{ display: "flex", justifyContent: m.role === "user" ? "flex-end" : "flex-start" }}>
             <div
