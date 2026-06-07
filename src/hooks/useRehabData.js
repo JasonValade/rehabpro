@@ -2,12 +2,14 @@ import { useState } from "react";
 import { MOCK_PATIENTS } from "../data/mockPatients";
 import { MOCK_REPORTS } from "../data/mockReports";
 import { MOCK_LOGS } from "../data/mockLogs";
+import { MOCK_CHECK_INS } from "../data/mockCheckIns";
 import { EXERCISE_LIBRARY } from "../data/exerciseLibrary";
 
 export function useRehabData() {
   const [patients, setPatients] = useState(MOCK_PATIENTS);
   const [reports, setReports] = useState(MOCK_REPORTS);
   const [logs, setLogs] = useState(MOCK_LOGS);
+  const [checkIns, setCheckIns] = useState(MOCK_CHECK_INS);
 
   const assignExercise = (patientId, exerciseId) => {
     setPatients((prev) =>
@@ -15,6 +17,7 @@ export function useRehabData() {
         if (patient.id !== patientId) return patient;
 
         const assignedExercises = patient.assignedExercises || [];
+        const exerciseOverrides = patient.exerciseOverrides || {};
 
         if (assignedExercises.includes(exerciseId)) {
           return patient;
@@ -23,6 +26,10 @@ export function useRehabData() {
         return {
           ...patient,
           assignedExercises: [...assignedExercises, exerciseId],
+          exerciseOverrides: {
+            ...exerciseOverrides,
+            [exerciseId]: exerciseOverrides[exerciseId] || {},
+          },
         };
       })
     );
@@ -34,10 +41,90 @@ export function useRehabData() {
         if (patient.id !== patientId) return patient;
 
         const assignedExercises = patient.assignedExercises || [];
+        const exerciseOverrides = { ...(patient.exerciseOverrides || {}) };
+
+        delete exerciseOverrides[exerciseId];
 
         return {
           ...patient,
           assignedExercises: assignedExercises.filter((id) => id !== exerciseId),
+          exerciseOverrides,
+        };
+      })
+    );
+  };
+
+  const updateAssignedExercise = (patientId, exerciseId, updates) => {
+    setPatients((prev) =>
+      prev.map((patient) => {
+        if (patient.id !== patientId) return patient;
+
+        const exerciseOverrides = patient.exerciseOverrides || {};
+
+        return {
+          ...patient,
+          exerciseOverrides: {
+            ...exerciseOverrides,
+            [exerciseId]: {
+              ...(exerciseOverrides[exerciseId] || {}),
+              ...updates,
+            },
+          },
+        };
+      })
+    );
+  };
+
+  const updatePatient = (patientId, updates) => {
+    setPatients((prev) =>
+      prev.map((patient) =>
+        patient.id === patientId ? { ...patient, ...updates } : patient
+      )
+    );
+  };
+
+  const applyWorkoutTemplate = (patientId, template) => {
+    setPatients((prev) =>
+      prev.map((patient) => {
+        if (patient.id !== patientId) return patient;
+
+        const assignedExercises = [
+          ...new Set([
+            ...(patient.assignedExercises || []),
+            ...(template.exerciseIds || []),
+          ]),
+        ];
+
+        return {
+          ...patient,
+          assignedExercises,
+        };
+      })
+    );
+  };
+
+  const updatePatientMilestone = (patientId, milestoneId, updates) => {
+    setPatients((prev) =>
+      prev.map((patient) => {
+        if (patient.id !== patientId) return patient;
+
+        const milestoneStatus = patient.milestoneStatus || {};
+        const nextUpdates = {
+          ...updates,
+          ...(updates.status === "Met" && !updates.metDate
+            ? { metDate: new Date().toISOString().split("T")[0] }
+            : {}),
+        };
+
+        return {
+          ...patient,
+          milestoneStatus: {
+            ...milestoneStatus,
+            [milestoneId]: {
+              ...(milestoneStatus[milestoneId] || {}),
+              ...nextUpdates,
+            },
+          },
         };
       })
     );
@@ -88,6 +175,32 @@ export function useRehabData() {
     return report;
   };
 
+  const submitCheckIn = ({
+    patientId,
+    pain,
+    swelling,
+    soreness,
+    confidence,
+    sleep,
+    concern,
+  }) => {
+    const checkIn = {
+      id: `check-${Date.now()}`,
+      patientId,
+      ts: Date.now(),
+      pain: Number(pain),
+      swelling: Number(swelling),
+      soreness: Number(soreness),
+      confidence: Number(confidence),
+      sleep,
+      concern,
+    };
+
+    setCheckIns((prev) => [checkIn, ...prev]);
+
+    return checkIn;
+  };
+
   const markReportRead = (reportId) => {
     setReports((prev) =>
       prev.map((report) =>
@@ -114,11 +227,17 @@ export function useRehabData() {
     patients,
     reports,
     logs,
+    checkIns,
     exercises: EXERCISE_LIBRARY,
     assignExercise,
     removeExercise,
+    updateAssignedExercise,
+    updatePatient,
+    updatePatientMilestone,
+    applyWorkoutTemplate,
     addWorkoutLog,
     submitReport,
+    submitCheckIn,
     markReportRead,
     replyToReport,
   };
