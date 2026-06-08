@@ -7,9 +7,9 @@ import { C } from "../../constants/colors";
  */
 
 /**
- * @param {{ rehabItems: any[]; gymItems: any[]; milestones: any[]; ptMessage: { time: string; text: string }; lockedExercises: any[]; schedule?: ScheduleItem[]; notification?: { latestCheckIn?: { concern: string } | null; unreadReports?: number } }} props
+ * @param {{ rehabItems: any[]; gymItems: any[]; milestones: any[]; perfData?: any[]; ptMessage: { time: string; text: string }; lockedExercises: any[]; schedule?: ScheduleItem[]; notification?: { latestCheckIn?: { concern: string } | null; unreadReports?: number } }} props
  */
-export function HomeView({ rehabItems, gymItems, milestones, ptMessage, lockedExercises, schedule = [], notification = {} }) {
+export function HomeView({ rehabItems, gymItems, milestones, perfData, ptMessage, lockedExercises, schedule = [], notification = {} }) {
   const rehabDone = rehabItems.filter((i) => i.done).length;
   const gymDone = gymItems.filter((i) => i.done).length;
   const totalDone = rehabDone + gymDone;

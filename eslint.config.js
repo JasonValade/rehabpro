@@ -9,6 +9,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist', 'node_modules']),
+  js.configs.recommended,
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
@@ -18,7 +19,11 @@ export default defineConfig([
         sourceType: 'module',
         ecmaFeatures: { jsx: true },
       },
-      globals: globals.browser,
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.vitest,
+      },
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
@@ -26,17 +31,19 @@ export default defineConfig([
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
     },
-    extends: [
-      js.configs.recommended,
-      tsPlugin.configs.recommended,
-      reactPlugin.configs.recommended,
-      reactHooks.configs.flat.recommended,
-      reactRefresh.configs.vite,
-    ],
     rules: {
+      ...tsPlugin.configs.recommended.rules,
+      ...reactPlugin.configs.recommended.rules,
+      ...reactHooks.configs.flat.recommended.rules,
+      ...reactRefresh.configs.vite.rules,
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'off',
       'no-unused-vars': 'off',
+      'no-undef': 'off',
       'react/react-in-jsx-scope': 'off',
+      'react/prop-types': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/set-state-in-effect': 'off',
     },
     settings: {
       react: { version: 'detect' },

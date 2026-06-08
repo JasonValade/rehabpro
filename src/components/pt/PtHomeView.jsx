@@ -6,9 +6,6 @@ import { C } from "../../constants/colors";
  * @typedef {{ workout: string; highlight: string; details: string }} ScheduleItem
  */
 
-/**
- * @param {{ patients: any[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; schedule?: ScheduleItem[]; unresolvedReports?: number; recentCheckIns?: number }} props
- */
 function PatientCard({ patient, active, onClick }) {
   return (
     <button
@@ -67,6 +64,9 @@ function PatientCard({ patient, active, onClick }) {
   );
 }
 
+/**
+ * @param {{ patients: any[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; schedule?: ScheduleItem[]; unresolvedReports?: number; recentCheckIns?: number }} props
+ */
 export function PtHomeView({ patients, selectedPatientId, onSelectPatient, schedule = [], unresolvedReports = 0, recentCheckIns = 0 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
