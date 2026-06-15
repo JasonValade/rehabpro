@@ -39,7 +39,15 @@ The backend server reads environment values from `.env`.
 - `BACKEND_API_KEY`: optional request guard for write endpoints
 - `CORS_ORIGIN`: default is `http://localhost:5173`
 
-If this repo includes `.env.example`, copy it to `.env` and fill in any required values.
+To enable the AI coach:
+
+1. Create an API key at `https://platform.openai.com/api-keys`.
+2. Add billing or prepaid credits to that API project if required by your account.
+3. Paste the key after `OPENAI_API_KEY=` in `.env`. Do not add quotes or expose it in frontend code.
+4. Restart `npm run dev:server` after changing `.env`.
+5. Open `http://localhost:4000/api/chat/status`; it should return `configured: true`.
+
+The API key is separate from a ChatGPT subscription. `.env` is ignored by Git so the secret stays local.
 
 ## Scripts
 

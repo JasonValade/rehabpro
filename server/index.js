@@ -154,6 +154,10 @@ app.get("/api/chat/history", (req, res) => {
   res.json(result);
 });
 
+app.get("/api/chat/status", (req, res) => {
+  res.json({ configured: Boolean(OPENAI_API_KEY), model: OPENAI_MODEL });
+});
+
 app.post("/api/chat", async (req, res) => {
   const { patientId, text, history, patientContext } = req.body;
   if (!text) {
@@ -228,4 +232,5 @@ app.get("/api/health", (req, res) => {
 
 app.listen(port, () => {
   console.log(`RehabPro API server listening on http://localhost:${port}`);
+  console.log(`AI coach: ${OPENAI_API_KEY ? `configured (${OPENAI_MODEL})` : "not configured - add OPENAI_API_KEY to .env"}`);
 });
