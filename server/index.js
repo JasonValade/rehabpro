@@ -7,7 +7,8 @@ dotenv.config();
 
 const app = express();
 const port = Number(process.env.PORT || 4000);
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:5173";
 
@@ -37,31 +38,14 @@ function normalizeRole(role) {
   return role === "assistant" ? "assistant" : "user";
 }
 
-function extractAnthropicText(responseData) {
-  if (!responseData) return null;
+function extractOpenAIText(responseData) {
+  if (typeof responseData?.output_text === "string") return responseData.output_text;
 
-  if (typeof responseData.completion === "string") {
-    return responseData.completion;
-  }
-
-  if (typeof responseData?.text === "string") {
-    return responseData.text;
-  }
-
-  const content = responseData?.completion?.content || responseData?.content;
-  if (Array.isArray(content)) {
-    const textBlock = content.find((item) => item.type === "text");
-    return textBlock?.text || null;
-  }
-
-  if (Array.isArray(responseData?.output)) {
-    const outputText = responseData.output
-      .flatMap((item) => item.content || [])
-      .find((block) => block.type === "text");
-    return outputText?.text || null;
-  }
-
-  return null;
+  return responseData?.output
+    ?.flatMap((item) => item.content || [])
+    .filter((item) => item.type === "output_text")
+    .map((item) => item.text)
+    .join("\n") || null;
 }
 
 app.get("/api/patients", (req, res) => {
@@ -165,59 +149,58 @@ app.get("/api/milestones", (req, res) => {
 
 app.get("/api/chat/history", (req, res) => {
   const { patientId } = req.query;
-  const result = patientId ? messages.filter((message) => message.patientId === patientId) : [...messages];
+  const aiMessages = messages.filter((message) => message.channel === "ai" || message.sender === "assistant");
+  const result = patientId ? aiMessages.filter((message) => message.patientId === patientId) : aiMessages;
   res.json(result);
 });
 
 app.post("/api/chat", async (req, res) => {
-  const { patientId, text, history } = req.body;
+  const { patientId, text, history, patientContext } = req.body;
   if (!text) {
     return res.status(400).json({ error: "Missing text" });
   }
 
-  if (!ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: "Server is not configured with ANTHROPIC_API_KEY" });
+  if (!OPENAI_API_KEY) {
+    return res.status(503).json({ error: "AI coach is not configured. Add OPENAI_API_KEY to the server environment." });
   }
 
-  const conversation = [
-    {
-      role: "system",
-      content:
-        "You are Dr. Rivera, a sports-specialized physical therapist inside the RehabPro app. Keep responses direct, specific, and motivating. Reply based on the current conversation and patient context.",
-    },
-    ...(Array.isArray(history)
-      ? history.map((item) => ({ role: normalizeRole(item.role), content: item.content || "" }))
-      : []),
-    { role: "user", content: text },
-  ];
+  const knownPatient = patients.find((patient) => patient.id === patientId);
+  const context = knownPatient || patientContext || {};
+  const conversation = Array.isArray(history)
+    ? history.slice(-12).map((item) => ({ role: normalizeRole(item.role), content: item.content || "" }))
+    : [];
+  conversation.push({ role: "user", content: text });
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-Key": ANTHROPIC_API_KEY,
+        Authorization: `Bearer ${OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens_to_sample: 1000,
-        messages: conversation,
+        model: OPENAI_MODEL,
+        instructions: `You are the RehabPro AI Coach, an educational exercise and rehabilitation assistant. You are not the patient's physical therapist and must never claim to be a clinician or provide a diagnosis. Give concise, practical guidance about symptoms, exercise form, and questions to ask a licensed PT. Use the supplied patient context when relevant: ${JSON.stringify(context)}. Do not recommend changing a post-operative protocol, weight-bearing status, medication, or prescribed plan. If symptoms suggest an emergency or serious complication, clearly tell the user to stop and seek urgent medical care. Encourage contacting their PT for worsening symptoms, uncertainty, or plan changes. Ask one focused follow-up question when details are insufficient.`,
+        input: conversation,
+        max_output_tokens: 700,
       }),
     });
 
     if (!response.ok) {
       const textBody = await response.text();
-      return res.status(502).json({ error: "Anthropic request failed", details: textBody });
+      console.error("OpenAI request failed", response.status, textBody);
+      return res.status(502).json({ error: "The AI coach could not respond right now." });
     }
 
     const data = await response.json();
-    const reply = extractAnthropicText(data) || "I couldn't get a response right now.";
+    const reply = extractOpenAIText(data) || "I couldn't get a response right now.";
 
     const normalizedPatientId = patientId || "unknown";
     const userMessage = {
       id: `msg-${Date.now()}-user`,
       patientId: normalizedPatientId,
       sender: "patient",
+      channel: "ai",
       text,
       ts: Date.now(),
     };
@@ -225,6 +208,7 @@ app.post("/api/chat", async (req, res) => {
       id: `msg-${Date.now()}-assistant`,
       patientId: normalizedPatientId,
       sender: "assistant",
+      channel: "ai",
       text: reply,
       ts: Date.now() + 1,
     };

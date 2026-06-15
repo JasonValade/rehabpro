@@ -94,6 +94,7 @@ export const initialMessages = [
     id: "msg-0",
     patientId: "pt_jason",
     sender: "assistant",
+    channel: "ai",
     text: "What's up Jason. Checked your session data — wall slides look solid. What do you need today?",
     ts: Date.now() - 1000 * 60 * 60 * 3,
   },

@@ -34,7 +34,8 @@ RehabPro is a React + Vite rehabilitation dashboard prototype for patient and ph
 
 The backend server reads environment values from `.env`.
 
-- `ANTHROPIC_API_KEY`: required for `/api/chat`
+- `OPENAI_API_KEY`: required for the AI coach at `/api/chat`
+- `OPENAI_MODEL`: optional model override; defaults to `gpt-5-mini`
 - `BACKEND_API_KEY`: optional request guard for write endpoints
 - `CORS_ORIGIN`: default is `http://localhost:5173`
 

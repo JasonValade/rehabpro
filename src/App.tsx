@@ -208,6 +208,21 @@ export default function RehabPro() {
     )
   }
 
+  const handleSendPatientMessage = (threadId: string, text: string) => {
+    setPtThreads((prev) =>
+      prev.map((thread) =>
+        thread.id === threadId
+          ? {
+              ...thread,
+              updated: 'Now',
+              excerpt: text,
+              messages: [...thread.messages, { sender: 'patient', text, ts: Date.now() }],
+            }
+          : thread,
+      ),
+    )
+  }
+
   const handleSubmitReport = (reportDetails: any) => {
     const patientId = signedInUser?.patientId
     if (!patientId) {
@@ -456,7 +471,7 @@ export default function RehabPro() {
           {tab === 'home' && (currentRole === 'pt' ? <PtHomeView patients={ptPatients} selectedPatientId={selectedPatientId} onSelectPatient={handleSelectPatient} unresolvedReports={unresolvedReports} recentCheckIns={recentCheckIns} /> : isIntakePatient ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />)}
           {tab === 'train' && (currentRole === 'pt' ? <PtTrainView patient={selectedPatient} exerciseNames={EXERCISE_NAMES} onAssign={handleAssignExercise} onUnassign={handleUnassignExercise} /> : isIntakePatient && !intake.completed ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />)}
           {tab === 'progress' && <ProgressView patientProfile={currentPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} checkIns={checkIns.filter((checkIn) => checkIn.patientId === signedInUser.patientId && checkIn.type === 'session')} />}
-          {tab === 'pt' && (currentRole === 'pt' ? <MessagesView threads={ptThreads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} onSendMessage={handleSendPtMessage} onBack={() => setActiveThreadId('')} /> : <PTChat />)}
+          {tab === 'pt' && (currentRole === 'pt' ? <MessagesView threads={ptThreads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} onSendMessage={handleSendPtMessage} onBack={() => setActiveThreadId('')} /> : <PTChat patientId={signedInUser.patientId} patientName={signedInUser.name} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={ptThreads.find((thread) => thread.patientId === signedInUser.patientId)} onSendPtMessage={handleSendPatientMessage} />)}
           {tab === 'report' && currentRole !== 'pt' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} />}
         </div>
 

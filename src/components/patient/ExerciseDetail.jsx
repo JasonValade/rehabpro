@@ -1,34 +1,14 @@
 import React from "react";
 import { C } from "../../constants/colors";
-
-function getYouTubeEmbedUrl(exercise) {
-  if (exercise.videoEmbed) {
-    return exercise.videoEmbed;
-  }
-
-  if (exercise.youtubeId) {
-    return `https://www.youtube.com/embed/${exercise.youtubeId}`;
-  }
-
-  if (!exercise.youtubeUrl) {
-    return "";
-  }
-
-  try {
-    const url = new URL(exercise.youtubeUrl);
-    const pathParts = url.pathname.split("/").filter(Boolean);
-    const id = url.hostname.includes("youtu.be")
-      ? pathParts[0]
-      : url.searchParams.get("v") || (pathParts[0] === "shorts" || pathParts[0] === "embed" ? pathParts[1] : pathParts.at(-1));
-
-    return id ? `https://www.youtube.com/embed/${id}` : "";
-  } catch {
-    return "";
-  }
-}
+import { getYouTubeVideoId } from "../../utils/youtube";
 
 export function ExerciseDetail({ exercise }) {
   const [showNotes, setShowNotes] = React.useState(false);
+  const [isPlaying, setIsPlaying] = React.useState(false);
+
+  React.useEffect(() => {
+    setIsPlaying(false);
+  }, [exercise?.id, exercise?.name]);
 
   if (!exercise) {
     return (
@@ -41,8 +21,10 @@ export function ExerciseDetail({ exercise }) {
   const instructions = exercise.instructions || exercise.cue || "Perform the movement with control and tolerance first."
   const progression = exercise.progression || "Progress when movement is comfortable, then add resistance or reps one step at a time while keeping form clean."
   const clinicalNotes = exercise.clinicalNotes || "Keep symptoms below the pain-monitoring threshold and report swelling changes at the next check-in."
-  const youtubeEmbedUrl = getYouTubeEmbedUrl(exercise);
-  const videoStatus = youtubeEmbedUrl ? "Video demo" : exercise.videoStatus || "Demo placeholder";
+  const youtubeVideoId = getYouTubeVideoId(exercise);
+  const youtubeEmbedUrl = youtubeVideoId ? `https://www.youtube-nocookie.com/embed/${youtubeVideoId}${isPlaying ? "?autoplay=1&rel=0" : ""}` : "";
+  const youtubeWatchUrl = youtubeVideoId ? `https://www.youtube.com/watch?v=${youtubeVideoId}` : "";
+  const videoStatus = youtubeVideoId ? "Video demo" : exercise.videoStatus || "Demo placeholder";
   const detailMeta = exercise.tag ? `${exercise.tag} · ${videoStatus}` : exercise.stages ? `${exercise.stages.join(" · ")}` : "Exercise details"
   const stats = [
     { label: "Sets", value: exercise.sets || "-", color: C.lime },
@@ -83,15 +65,36 @@ export function ExerciseDetail({ exercise }) {
         </div>
       </div>
 
-      {youtubeEmbedUrl ? (
-        <div style={{ borderRadius: 18, overflow: "hidden", border: `1px solid ${C.rim}`, background: C.black, aspectRatio: "16 / 9" }}>
-          <iframe
-            src={youtubeEmbedUrl}
-            title={`${exercise.name} video demo`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-          />
+      {youtubeVideoId ? (
+        <div style={{ display: "grid", gap: 9 }}>
+          <div style={{ borderRadius: 18, overflow: "hidden", border: `1px solid ${C.rim}`, background: C.black, aspectRatio: "16 / 9", position: "relative" }}>
+            {isPlaying ? (
+              <iframe
+                src={youtubeEmbedUrl}
+                title={`${exercise.name} video demo`}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerPolicy="strict-origin-when-cross-origin"
+                allowFullScreen
+                style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => setIsPlaying(true)}
+                aria-label={`Play ${exercise.name} video demo`}
+                style={{ width: "100%", height: "100%", padding: 0, border: "none", background: C.black, display: "block", position: "relative", overflow: "hidden" }}
+              >
+                <img src={`https://i.ytimg.com/vi/${youtubeVideoId}/hqdefault.jpg`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block", opacity: 0.78 }} />
+                <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.55))" }}>
+                  <span style={{ width: 62, height: 62, borderRadius: "50%", display: "grid", placeItems: "center", paddingLeft: 4, background: C.lime, color: C.black, fontSize: 25, boxShadow: "0 8px 30px rgba(0,0,0,0.45)" }}>▶</span>
+                </span>
+                <span style={{ position: "absolute", left: 12, bottom: 10, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tap to play technique demo</span>
+              </button>
+            )}
+          </div>
+          <a href={youtubeWatchUrl} target="_blank" rel="noreferrer" style={{ color: C.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 11, textAlign: "right", textDecoration: "none" }}>
+            Video not loading? Open on YouTube ↗
+          </a>
         </div>
       ) : (
         <div

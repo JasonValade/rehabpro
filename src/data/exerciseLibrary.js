@@ -12,6 +12,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "None",
     cue: "Tighten quad while leg is flat. Hold 5s. Keep kneecap pulled upward.",
     difficulty: 1,
+    youtubeUrl: "https://www.youtube.com/watch?v=au62CidApd0",
   },
   {
     id: "e2",
@@ -25,6 +26,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "None",
     cue: "Slide heel toward glutes on smooth surface. Stop before sharp pain or pinching.",
     difficulty: 1,
+    youtubeUrl: "https://www.youtube.com/watch?v=A7fcobCVppc",
   },
   {
     id: "e3",
@@ -38,6 +40,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "None",
     cue: "Lock knee first, then raise to 45 degrees. No quad lag or swinging.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/shorts/4h5wRszUH2I",
   },
   {
     id: "e4",
@@ -51,6 +54,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "Resistance band",
     cue: "Band behind knee. Drive knee to full extension. Pause 1s, then control return.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/shorts/CU7Fn11YMTw",
   },
   {
     id: "e5",
@@ -64,6 +68,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "Wall",
     cue: "Feet shoulder-width. Slide down only as tolerated. Keep knees tracking over toes.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/shorts/zcQLlI056HI",
   },
   {
     id: "e6",
@@ -103,6 +108,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "Resistance band",
     cue: "Band above knees or ankles. Slight squat. Keep toes forward and pelvis level.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/shorts/HW9xLHrLhxI",
   },
   {
     id: "e9",
@@ -142,6 +148,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "None",
     cue: "Drive through heels. Squeeze glutes at top. Keep ribs down and hips level.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/watch?v=PhTDzR0TpZs",
   },
   {
     id: "e12",
@@ -315,6 +322,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "None",
     cue: "Pump foot up and down through comfortable range. Keep motion smooth.",
     difficulty: 1,
+    youtubeUrl: "https://www.youtube.com/watch?v=n6HI30C00Bk",
   },
   {
     id: "e25",
@@ -341,6 +349,7 @@ export const EXERCISE_LIBRARY = [
     equipment: "Step optional",
     cue: "Rise to full height. Lower for 3s. Keep weight through big toe and second toe.",
     difficulty: 2,
+    youtubeUrl: "https://www.youtube.com/watch?v=Km0QS46bTEA",
   },
   {
     id: "e27",

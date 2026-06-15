@@ -204,19 +204,7 @@ export function TrainView({ rehabItems, setRehabItems, onSubmitCheckIn }) {
   const detailExercise = selectedItem
     ? {
         ...selectedExerciseData,
-        name: selectedItem.name,
-        sets: selectedItem.sets,
-        reps: selectedItem.reps,
-        load: selectedItem.load,
-        tag: selectedItem.tag,
-        reminder: selectedItem.reminder,
-        instructions: selectedItem.instructions,
-        clinicalNotes: selectedItem.clinicalNotes,
-        videoStatus: selectedItem.videoStatus,
-        youtubeId: selectedItem.youtubeId,
-        youtubeUrl: selectedItem.youtubeUrl,
-        videoEmbed: selectedItem.videoEmbed,
-        done: selectedItem.done,
+        ...selectedItem,
       }
     : null;
   const completed = rehabItems.filter((i) => i.done).length;
