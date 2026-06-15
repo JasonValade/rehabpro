@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { C } from "../../constants/colors";
 
-const PT_SYSTEM = `You are Dr. Rivera, a sports-specialized physical therapist inside the RehabPro app. The patient is Jason — 20 years old, 6'2", competitive basketball player, 14 weeks post ACL + meniscus surgery (left knee). Current phase: Early Motion. He trains upper body daily and is focused on returning to full basketball performance — dunking, lateral cuts, explosiveness. He's been tracking vertical jump gains (+18 inches from baseline so far). He also trains on a PPL split for upper body.
-Be direct, specific, motivating. Talk like a sports PT who works with athletes, not a hospital doctor. Keep responses under 120 words.`;
-
 const DEFAULT_MESSAGES = [
   {
     role: "assistant",

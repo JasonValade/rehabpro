@@ -14,165 +14,172 @@ function findExercise(name) {
   );
 }
 
-export function TrainView({ rehabItems, setRehabItems, gymItems, setGymItems }) {
-  const [section, setSection] = useState("rehab");
-  const items = section === "rehab" ? rehabItems : gymItems;
-  const setItems = section === "rehab" ? setRehabItems : setGymItems;
-  const [selectedExerciseId, setSelectedExerciseId] = useState(items[0]?.id ?? null);
+function ExerciseCard({ item, index, onToggle, onDetails }) {
+  const color = C.amber;
+
+  return (
+    <div
+      style={{
+        background: item.done ? color + "12" : C.panel,
+        border: `1px solid ${item.done ? color + "40" : C.rim}`,
+        borderRadius: 14,
+        padding: "14px 16px",
+        display: "grid",
+        gridTemplateColumns: "auto 1fr auto",
+        alignItems: "center",
+        gap: 14,
+      }}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={`${item.done ? "Mark incomplete" : "Mark complete"} ${item.name}`}
+        style={{
+          width: 40,
+          height: 40,
+          borderRadius: 12,
+          border: `2px solid ${item.done ? color : C.rimHi}`,
+          background: item.done ? color : "transparent",
+          color: item.done ? C.black : C.muted,
+          fontSize: 16,
+          fontWeight: 700,
+          cursor: "pointer",
+        }}
+      >
+        {item.done ? "✓" : index + 1}
+      </button>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.bone }}>{item.name}</div>
+        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.muted }}>
+          {item.sets} × {item.reps}
+          {item.load ? ` · ${item.load} lbs` : ""}
+        </div>
+        {item.reminder ? (
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: item.done ? C.muted : C.bone, lineHeight: 1.4 }}>
+            {item.reminder}
+          </div>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onDetails}
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          border: `1px solid ${C.rim}`,
+          background: C.panel,
+          color: C.bone,
+          fontFamily: "'DM Sans', sans-serif",
+          fontSize: 11,
+          cursor: "pointer",
+        }}
+      >
+        Details
+      </button>
+    </div>
+  );
+}
+
+export function TrainView({ rehabItems, setRehabItems }) {
+  const [selectedExerciseId, setSelectedExerciseId] = useState(null);
 
   useEffect(() => {
-    if (!items.some((item) => item.id === selectedExerciseId)) {
-      setSelectedExerciseId(items[0]?.id ?? null);
+    if (selectedExerciseId && !rehabItems.some((item) => item.id === selectedExerciseId)) {
+      setSelectedExerciseId(null);
     }
-  }, [items, selectedExerciseId]);
+  }, [rehabItems, selectedExerciseId]);
 
-  const toggle = (id) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, done: !i.done } : i)));
-  const selectedItem = items.find((item) => item.id === selectedExerciseId);
+  const toggle = (id) => setRehabItems((prev) => prev.map((i) => (i.id === id ? { ...i, done: !i.done } : i)));
+  const selectedItem = rehabItems.find((item) => item.id === selectedExerciseId);
   const selectedExerciseData = selectedItem ? findExercise(selectedItem.name) : null;
   const detailExercise = selectedItem
     ? {
+        ...selectedExerciseData,
         name: selectedItem.name,
         sets: selectedItem.sets,
         reps: selectedItem.reps,
         load: selectedItem.load,
-        ...selectedExerciseData,
+        tag: selectedItem.tag,
+        reminder: selectedItem.reminder,
+        instructions: selectedItem.instructions,
+        clinicalNotes: selectedItem.clinicalNotes,
+        videoStatus: selectedItem.videoStatus,
+        youtubeId: selectedItem.youtubeId,
+        youtubeUrl: selectedItem.youtubeUrl,
+        videoEmbed: selectedItem.videoEmbed,
+        done: selectedItem.done,
       }
     : null;
+  const completed = rehabItems.filter((i) => i.done).length;
+  const total = rehabItems.length;
+
+  if (detailExercise) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            type="button"
+            onClick={() => setSelectedExerciseId(null)}
+            aria-label="Back to plan"
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 12,
+              border: `1px solid ${C.rim}`,
+              background: C.panel,
+              color: C.bone,
+              fontSize: 22,
+              lineHeight: 1,
+              cursor: "pointer",
+            }}
+          >
+            ←
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+              Back to plan
+            </div>
+            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
+              Exercise details
+            </div>
+          </div>
+          {detailExercise?.difficulty ? <Tag label={`Level ${detailExercise.difficulty}`} color={C.lime} /> : null}
+        </div>
+        <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 16 }}>
+          <ExerciseDetail exercise={detailExercise} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "flex", background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 8, padding: 3, gap: 3 }}>
-        {[
-          ["rehab", "REHAB", C.amber],
-          ["gym", "GYM", C.blue],
-        ].map(([id, label, color]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setSection(id)}
-            style={{
-              flex: 1,
-              padding: "9px 0",
-              border: "none",
-              borderRadius: 6,
-              background: section === id ? color : "transparent",
-              color: section === id ? C.black : C.muted,
-              fontFamily: "'Bebas Neue', cursive",
-              fontSize: 16,
-              letterSpacing: "0.08em",
-              cursor: "pointer",
-              transition: "all 0.15s",
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
-          {section === "rehab" ? "Recovery Protocol" : "Push Day"}
+        <div>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
+            {"Today's Knee Rehab"}
+          </div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, marginTop: 4 }}>
+            Halfway-through ACL + meniscus plan. Discomfort is fine, pain is not.
+          </div>
         </div>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.muted }}>
-          {items.filter((i) => i.done).length}/{items.length} done
+        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: completed === total ? C.lime : C.muted }}>
+          {completed}/{total} complete
         </div>
       </div>
 
       <div style={{ display: "grid", gap: 10 }}>
-        {items.map((item, idx) => {
-          const color = section === "rehab" ? C.amber : C.blue;
-          const active = item.id === selectedExerciseId;
-          return (
-            <div
-              key={item.id}
-              style={{
-                background: active ? C.deep : item.done ? color + "12" : C.panel,
-                border: `1px solid ${active ? C.lime : item.done ? color + "40" : C.rim}`,
-                borderRadius: 14,
-                padding: "14px 16px",
-                display: "grid",
-                gridTemplateColumns: "auto 1fr auto",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => toggle(item.id)}
-                aria-label={`${item.done ? "Mark incomplete" : "Mark complete"} ${item.name}`}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  border: `2px solid ${item.done ? color : C.rimHi}`,
-                  background: item.done ? color : "transparent",
-                  color: item.done ? C.black : C.muted,
-                  fontSize: 16,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                {item.done ? "✓" : idx + 1}
-              </button>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedExerciseId(item.id)}
-                  style={{
-                    width: "100%",
-                    textAlign: "left",
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontSize: 15,
-                    color: C.bone,
-                    cursor: "pointer",
-                  }}
-                >
-                  {item.name}
-                </button>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.muted }}>
-                  {item.sets} × {item.reps}
-                  {item.load ? ` · ${item.load} lbs` : ""}
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setSelectedExerciseId(item.id)}
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  border: `1px solid ${active ? C.lime : C.rim}`,
-                  background: active ? C.limeDim : C.panel,
-                  color: active ? C.lime : C.bone,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 11,
-                  cursor: "pointer",
-                }}
-              >
-                Details
-              </button>
-            </div>
-          );
-        })}
-      </div>
-
-      <div style={{ background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 14, padding: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
-          <div>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone }}>Exercise details</div>
-            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Tap a movement to review technique, video, and progression.
-            </div>
-          </div>
-          {detailExercise?.difficulty ? (
-            <Tag label={`Level ${detailExercise.difficulty}`} color={C.lime} />
-          ) : null}
-        </div>
-        <ExerciseDetail exercise={detailExercise} />
+        {rehabItems.map((item, idx) => (
+          <ExerciseCard
+            key={item.id}
+            item={item}
+            index={idx}
+            onToggle={() => toggle(item.id)}
+            onDetails={() => setSelectedExerciseId(item.id)}
+          />
+        ))}
       </div>
     </div>
   );

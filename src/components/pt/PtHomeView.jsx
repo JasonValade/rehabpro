@@ -65,9 +65,9 @@ function PatientCard({ patient, active, onClick }) {
 }
 
 /**
- * @param {{ patients: any[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; schedule?: ScheduleItem[]; unresolvedReports?: number; recentCheckIns?: number }} props
+ * @param {{ patients: any[]; selectedPatientId: string | null; onSelectPatient: (id: string) => void; unresolvedReports?: number; recentCheckIns?: number }} props
  */
-export function PtHomeView({ patients, selectedPatientId, onSelectPatient, schedule = [], unresolvedReports = 0, recentCheckIns = 0 }) {
+export function PtHomeView({ patients, selectedPatientId, onSelectPatient, unresolvedReports = 0, recentCheckIns = 0 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>

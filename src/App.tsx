@@ -1,7 +1,7 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { C } from './constants/colors'
 import { AUTH_USERS } from './data/authUsers'
-import { MILESTONES, PERF_DATA, REHAB_TODAY, GYM_TODAY, LOCKED_EXERCISES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES } from './data/rehabMock'
+import { MILESTONES, REHAB_TODAY, INTAKE_REHAB_TODAY, PATIENT_DEMO_PROFILES, LOCKED_EXERCISES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES, RETURNING_PATIENT_PROGRESS, RETURNING_PATIENT_COMPLETION_HISTORY } from './data/rehabMock'
 import { MOCK_CHECK_INS } from './data/mockCheckIns'
 import { MOCK_REPORTS } from './data/mockReports'
 import { useLocalStorageState } from './hooks/useLocalStorageState'
@@ -30,7 +30,7 @@ const TABS = [
   { id: 'train', icon: '◈', label: 'TRAIN' },
   { id: 'progress', icon: '◎', label: 'PROGRESS' },
   { id: 'pt', icon: '⊕', label: 'PT' },
-  { id: 'report', icon: '', label: 'REPORT' },
+  { id: 'report', icon: '◇', label: 'REPORT' },
 ]
 
 const PT_HOME_TABS = [
@@ -53,66 +53,80 @@ const SCHEDULE = [
 ]
 
 const NOTIFICATION_SUMMARY = {
-  patient: {
-    title: 'Next check-in',
-    message: 'Keep notes on pain, swelling, and confidence for PT review.',
-  },
   pt: {
     title: 'PT dashboard',
     message: 'New patient reports and check-ins require review.',
   },
 }
 
+function mergeExerciseMetadata(savedItems: any[], sourceItems: any[]) {
+  return savedItems.map((item) => {
+    const source = sourceItems.find((candidate) => candidate.id === item.id || candidate.name === item.name)
+    return source ? { ...source, done: item.done } : item
+  })
+}
+
 export default function RehabPro() {
   const [authUser, setAuthUser] = useLocalStorageState<AuthUser | null>('rehabpro:authUser', null)
   const [viewMode, setViewMode] = useLocalStorageState<'patient' | 'pt'>('rehabpro:viewMode', authUser?.role ?? 'patient')
   const [tab, setTab] = useLocalStorageState('rehabpro:tab', 'home')
-  const [rehabItems, setRehabItems] = useLocalStorageState('rehabpro:rehabItems', REHAB_TODAY)
-  const [gymItems, setGymItems] = useLocalStorageState('rehabpro:gymItems', GYM_TODAY)
+  const [rehabItems, setRehabItems] = useLocalStorageState<any[]>('rehabpro:rehabItems', REHAB_TODAY)
   const [ptPatients, setPtPatients] = useLocalStorageState('rehabpro:ptPatients', PT_PATIENTS)
   const [selectedPatientId, setSelectedPatientId] = useLocalStorageState<string | null>('rehabpro:selectedPatientId', null)
   const [ptDetailMode, setPtDetailMode] = useLocalStorageState('rehabpro:ptDetailMode', false)
   const [ptThreads, setPtThreads] = useLocalStorageState('rehabpro:ptThreads', PT_THREADS)
   const [activeThreadId, setActiveThreadId] = useLocalStorageState('rehabpro:activeThreadId', PT_THREADS[0].id)
-  const [loginForm, setLoginForm] = useState({ username: '', password: '' })
-  const [loginError, setLoginError] = useState('')
-  const [reports, setReports] = useLocalStorageState('rehabpro:reports', MOCK_REPORTS)
-  const [checkIns, setCheckIns] = useLocalStorageState('rehabpro:checkIns', MOCK_CHECK_INS)
+  const [reports] = useLocalStorageState('rehabpro:reports', MOCK_REPORTS)
+  const [checkIns] = useLocalStorageState('rehabpro:checkIns', MOCK_CHECK_INS)
 
-  const currentRole = authUser?.role || viewMode
+  const signedInUser = authUser?.role === 'patient' ? authUser : null
+  const currentRole: 'patient' | 'pt' = signedInUser?.role ?? viewMode
+  const patientProfiles = PATIENT_DEMO_PROFILES as Record<string, any>
+  const currentPatientProfile = signedInUser?.patientId ? patientProfiles[signedInUser.patientId] : null
+  const demoPatientUsers = AUTH_USERS.filter((user) => user.role === 'patient' && user.patientId && patientProfiles[user.patientId])
 
   useEffect(() => {
-    if (authUser && authUser.role !== viewMode) {
-      setViewMode(authUser.role)
+    if (authUser?.role === 'patient' && viewMode !== 'patient') {
+      setViewMode('patient')
     }
   }, [authUser, viewMode, setViewMode])
 
-  const selectedPatient = ptPatients.find((patient) => patient.id === selectedPatientId)
-  const patientCheckIns = authUser?.patientId ? checkIns.filter((checkIn) => checkIn.patientId === authUser.patientId) : []
-  const patientUnreadReports = authUser?.patientId ? reports.filter((report) => report.patientId === authUser.patientId && !report.ptRead).length : 0
-  const unresolvedReports = currentRole === 'pt' ? reports.filter((report) => !report.ptRead).length : 0
-  const recentCheckIns = currentRole === 'pt' ? checkIns.filter((checkIn) => Date.now() - checkIn.ts < 1000 * 60 * 60 * 24).length : patientCheckIns.length
-  const scheduleAlerts = currentRole === 'patient' ? patientCheckIns[0] : null
+  useEffect(() => {
+    if (authUser?.role === 'pt') {
+      setAuthUser(null)
+      setViewMode('patient')
+      setTab('home')
+      setPtDetailMode(false)
+      setSelectedPatientId(null)
+      setActiveThreadId(PT_THREADS[0].id)
+    }
+  }, [authUser?.role, setActiveThreadId, setAuthUser, setPtDetailMode, setSelectedPatientId, setTab, setViewMode])
 
-  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    const matchedUser = AUTH_USERS.find(
-      (user) => user.username.toLowerCase() === loginForm.username.toLowerCase() && user.password === loginForm.password,
-    ) as AuthUser | undefined
-
-    if (!matchedUser) {
-      setLoginError('Incorrect username or password.')
+  useEffect(() => {
+    if (authUser?.role !== 'patient') {
       return
     }
 
+    const sourceItems = authUser.patientId === 'pt_intake' ? INTAKE_REHAB_TODAY : REHAB_TODAY
+    setRehabItems((prev) => {
+      const merged = mergeExerciseMetadata(prev, sourceItems)
+      return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged
+    })
+  }, [authUser?.patientId, authUser?.role, setRehabItems])
+
+  const selectedPatient = ptPatients.find((patient) => patient.id === selectedPatientId)
+  const patientUnreadReports = signedInUser?.patientId ? reports.filter((report) => report.patientId === signedInUser.patientId && !report.ptRead).length : 0
+  const unresolvedReports = currentRole === 'pt' ? reports.filter((report) => !report.ptRead).length : 0
+  const recentCheckIns = currentRole === 'pt' ? checkIns.filter((checkIn) => Date.now() - checkIn.ts < 1000 * 60 * 60 * 24).length : 0
+
+  const handleDemoLogin = (matchedUser: AuthUser) => {
     setAuthUser(matchedUser)
-    setViewMode(matchedUser.role)
+    setViewMode('patient')
     setTab('home')
     setPtDetailMode(false)
     setSelectedPatientId(matchedUser.patientId || null)
-    setActiveThreadId(PT_THREADS[0].id)
-    setLoginForm({ username: '', password: '' })
-    setLoginError('')
+    setActiveThreadId(PT_THREADS.find((thread) => thread.patientId === matchedUser.patientId)?.id || PT_THREADS[0].id)
+    setRehabItems(matchedUser.patientId === 'pt_intake' ? INTAKE_REHAB_TODAY : REHAB_TODAY)
   }
 
   const handleLogout = () => {
@@ -172,7 +186,7 @@ export default function RehabPro() {
     )
   }
 
-  if (!authUser) {
+  if (!signedInUser) {
     return (
       <>
         <style>{`
@@ -205,36 +219,53 @@ export default function RehabPro() {
               REHAB<span style={{ color: C.lime }}>PRO</span>
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: C.muted, marginBottom: 24 }}>
-              Sign in as a patient or PT to continue. PT access is protected and separate from patient mode.
+              Choose a demo patient. One returns to an active plan, the other starts with script intake.
             </div>
-            <form onSubmit={handleLogin}>
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.12em', marginBottom: 8, color: C.bone }}>
-                USERNAME
-              </label>
-              <input
-                value={loginForm.username}
-                onChange={(event) => setLoginForm((prev) => ({ ...prev, username: event.target.value }))}
-                placeholder="jason / sara / mike / alex"
-                style={{ width: '100%', marginBottom: 16, padding: '12px 14px', borderRadius: 14, border: `1px solid ${C.rim}`, background: C.deep, color: C.bone, fontSize: 14 }}
-              />
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.12em', marginBottom: 8, color: C.bone }}>
-                PASSWORD
-              </label>
-              <input
-                type="password"
-                value={loginForm.password}
-                onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
-                placeholder="patient123 / pt123"
-                style={{ width: '100%', marginBottom: 20, padding: '12px 14px', borderRadius: 14, border: `1px solid ${C.rim}`, background: C.deep, color: C.bone, fontSize: 14 }}
-              />
-              {loginError ? <div style={{ marginBottom: 20, color: C.red, fontSize: 12 }}>{loginError}</div> : null}
+            <div style={{ display: 'grid', gap: 12 }}>
+              {demoPatientUsers.map((user) => {
+                const profile = patientProfiles[user.patientId as string]
+                return (
+                  <button
+                    key={user.patientId}
+                    type="button"
+                    onClick={() => handleDemoLogin(user as AuthUser)}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      borderRadius: 16,
+                      border: `1px solid ${C.rim}`,
+                      background: C.deep,
+                      color: C.bone,
+                      textAlign: 'left',
+                      display: 'grid',
+                      gap: 8,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+                      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, letterSpacing: '0.04em' }}>
+                        {profile.demoLabel}
+                      </div>
+                      <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                        Demo
+                      </div>
+                    </div>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone }}>
+                      {profile.name} · {profile.injuryType}
+                    </div>
+                    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, lineHeight: 1.5 }}>
+                      {profile.rehabPhase} · {profile.ptOversightStatus}
+                    </div>
+                  </button>
+                )
+              })}
               <button
-                type="submit"
+                type="button"
+                onClick={() => handleDemoLogin(demoPatientUsers[0] as AuthUser)}
                 style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: C.lime, color: C.black, fontFamily: "'Bebas Neue', cursive", fontSize: 14, letterSpacing: '0.08em' }}
               >
-                SIGN IN
+                START RETURNING PATIENT DEMO
               </button>
-            </form>
+            </div>
           </div>
         </div>
       </>
@@ -286,7 +317,7 @@ export default function RehabPro() {
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
                 <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.08em' }}>
-                  {authUser.name} · {currentRole === 'patient' ? 'PATIENT' : 'PT'}
+                  {currentPatientProfile?.name ?? signedInUser.name} · {currentRole === 'patient' ? currentPatientProfile?.rehabPhase.toUpperCase() ?? 'PATIENT' : 'PT'}
                 </div>
                 <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.08em' }}>
                   {currentRole === 'patient' ? 'PATIENT MODE' : 'PT MODE'}
@@ -315,24 +346,26 @@ export default function RehabPro() {
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
-            <div style={{ flex: 1, minWidth: 180, padding: '12px 14px', borderRadius: 16, background: C.panel, border: `1px solid ${C.rim}` }}>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                {NOTIFICATION_SUMMARY[currentRole].title}
+          {currentRole === 'pt' ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
+              <div style={{ flex: 1, minWidth: 180, padding: '12px 14px', borderRadius: 16, background: C.panel, border: `1px solid ${C.rim}` }}>
+                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                  {NOTIFICATION_SUMMARY.pt.title}
+                </div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.5 }}>
+                  {NOTIFICATION_SUMMARY.pt.message}
+                </div>
               </div>
-              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.5 }}>
-                {currentRole === 'patient' ? NOTIFICATION_SUMMARY.patient.message : NOTIFICATION_SUMMARY.pt.message}
+              <div style={{ minWidth: 120, padding: '12px 14px', borderRadius: 16, background: C.redDim, border: `1px solid ${C.red}` }}>
+                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                  Pending items
+                </div>
+                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: C.red }}>
+                  {unresolvedReports}
+                </div>
               </div>
             </div>
-            <div style={{ minWidth: 120, padding: '12px 14px', borderRadius: 16, background: currentRole === 'pt' ? C.redDim : C.blueDim, border: `1px solid ${currentRole === 'pt' ? C.red : C.blue}` }}>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
-                {currentRole === 'pt' ? 'Pending items' : 'Recent check-ins'}
-              </div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: currentRole === 'pt' ? C.red : C.blue }}>
-                {currentRole === 'pt' ? `${unresolvedReports}` : `${recentCheckIns}`}
-              </div>
-            </div>
-          </div>
+          ) : null}
         </div>
 
         {currentRole === 'pt' && ptDetailMode && (
@@ -357,9 +390,9 @@ export default function RehabPro() {
         )}
 
         <div style={{ flex: 1, padding: '16px 20px', paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0))', overflowY: 'auto' }}>
-          {tab === 'home' && (currentRole === 'pt' ? <PtHomeView patients={ptPatients} selectedPatientId={selectedPatientId} onSelectPatient={handleSelectPatient} schedule={SCHEDULE} unresolvedReports={unresolvedReports} recentCheckIns={recentCheckIns} /> : <HomeView rehabItems={rehabItems} gymItems={gymItems} milestones={MILESTONES} perfData={PERF_DATA} ptMessage={PT_MSG} lockedExercises={LOCKED_EXERCISES} schedule={SCHEDULE} notification={{ latestCheckIn: scheduleAlerts, unreadReports: patientUnreadReports }} />)}
-          {tab === 'train' && (currentRole === 'pt' ? <PtTrainView patient={selectedPatient} exerciseNames={EXERCISE_NAMES} onAssign={handleAssignExercise} onUnassign={handleUnassignExercise} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} gymItems={gymItems} setGymItems={setGymItems} />)}
-          {tab === 'progress' && <ProgressView milestones={MILESTONES} perfData={PERF_DATA} />}
+          {tab === 'home' && (currentRole === 'pt' ? <PtHomeView patients={ptPatients} selectedPatientId={selectedPatientId} onSelectPatient={handleSelectPatient} unresolvedReports={unresolvedReports} recentCheckIns={recentCheckIns} /> : <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} lockedExercises={LOCKED_EXERCISES} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} />)}
+          {tab === 'train' && (currentRole === 'pt' ? <PtTrainView patient={selectedPatient} exerciseNames={EXERCISE_NAMES} onAssign={handleAssignExercise} onUnassign={handleUnassignExercise} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} />)}
+          {tab === 'progress' && <ProgressView patientProfile={currentPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} />}
           {tab === 'pt' && (currentRole === 'pt' ? <MessagesView threads={ptThreads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} onSendMessage={handleSendPtMessage} onBack={() => setActiveThreadId('')} /> : <PTChat />)}
           {tab === 'report' && currentRole !== 'pt' && <ReportView rehabItems={rehabItems} />}
         </div>
@@ -382,7 +415,6 @@ export default function RehabPro() {
         >
           {(currentRole === 'pt' ? (ptDetailMode ? PT_PATIENT_TABS : PT_HOME_TABS) : TABS).map((t) => {
             const active = tab === t.id
-            const isReport = t.id === 'report'
             return (
               <button
                 key={t.id}
@@ -400,9 +432,9 @@ export default function RehabPro() {
                   transition: 'all 0.15s',
                 }}
               >
-                <div style={{ fontSize: 20, color: active ? (isReport ? C.red : C.lime) : C.muted, transition: 'color 0.15s' }}>{t.icon}</div>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 11, letterSpacing: '0.1em', color: active ? (isReport ? C.red : C.lime) : C.muted, transition: 'color 0.15s' }}>{t.label}</div>
-                {active && <div style={{ width: 18, height: 2, borderRadius: 1, background: isReport ? C.red : C.lime }} />}
+                <div style={{ fontSize: 20, color: active ? C.lime : C.muted, transition: 'color 0.15s' }}>{t.icon}</div>
+                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 11, letterSpacing: '0.1em', color: active ? C.lime : C.muted, transition: 'color 0.15s' }}>{t.label}</div>
+                {active && <div style={{ width: 18, height: 2, borderRadius: 1, background: C.lime }} />}
               </button>
             )
           })}
