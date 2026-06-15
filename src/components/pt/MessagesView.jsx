@@ -91,6 +91,7 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: 13,
                     lineHeight: 1.6,
+                    whiteSpace: "pre-wrap",
                   }}
                 >
                   {msg.text}

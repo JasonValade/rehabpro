@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { C } from "../../constants/colors";
 
-export function ReportView({ rehabItems, onSubmit }) {
+export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ exercise: "", pain: 0, swelling: 0, location: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -11,20 +11,32 @@ export function ReportView({ rehabItems, onSubmit }) {
   const submit = () => {
     onSubmit(form);
     setSubmitted(true);
-    setTimeout(() => {
-      setSubmitted(false);
-      setStep(0);
-      setForm({ exercise: "", pain: 0, swelling: 0, location: "", note: "" });
-    }, 2500);
+  };
+
+  const resetReport = () => {
+    setSubmitted(false);
+    setStep(0);
+    setForm({ exercise: "", pain: 0, swelling: 0, location: "", note: "" });
   };
 
   if (submitted) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "60px 20px" }}>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 60, color: C.lime, lineHeight: 1 }}>SENT.</div>
-        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: C.muted, textAlign: "center" }}>
-          Dr. Rivera has been notified and will respond shortly.
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "48px 20px" }}>
+        <div style={{ width: 58, height: 58, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", background: C.limeDim, border: `1px solid ${C.limeMid}`, color: C.lime, fontSize: 28, fontWeight: 700 }}>✓</div>
+        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 44, color: C.lime, lineHeight: 1 }}>REPORT SENT</div>
+        <div style={{ maxWidth: 280, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.6, color: C.muted, textAlign: "center" }}>
+          Your symptom report is now in your PT conversation for review.
         </div>
+        <button
+          type="button"
+          onClick={onOpenMessages}
+          style={{ width: "100%", maxWidth: 280, padding: "13px 16px", border: "none", borderRadius: 12, background: C.lime, color: C.black, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700 }}
+        >
+          View in PT messages →
+        </button>
+        <button type="button" onClick={resetReport} style={{ border: "none", background: "transparent", color: C.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 12 }}>
+          Submit another report
+        </button>
       </div>
     );
   }

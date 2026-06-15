@@ -7,8 +7,9 @@ describe("ReportView", () => {
   it("submits the completed symptom report before showing confirmation", async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn();
+    const onOpenMessages = vi.fn();
 
-    render(<ReportView rehabItems={[{ name: "Quad Sets" }]} onSubmit={onSubmit} />);
+    render(<ReportView rehabItems={[{ name: "Quad Sets" }]} onSubmit={onSubmit} onOpenMessages={onOpenMessages} />);
 
     await user.click(screen.getByRole("button", { name: "Quad Sets" }));
     await user.click(screen.getAllByRole("button", { name: "3" })[0]);
@@ -25,6 +26,8 @@ describe("ReportView", () => {
       location: "Front of knee",
       note: "Sharp pain during the last rep",
     });
-    expect(screen.getByText("SENT.")).toBeInTheDocument();
+    expect(screen.getByText("REPORT SENT")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /view in pt messages/i }));
+    expect(onOpenMessages).toHaveBeenCalledOnce();
   });
 });

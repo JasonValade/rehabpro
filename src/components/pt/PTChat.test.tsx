@@ -19,12 +19,20 @@ describe('PTChat', () => {
     props.onSendPtMessage.mockClear()
   })
 
-  it('keeps AI coaching distinct from the physical therapist conversation', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => [] }))
+  it('defaults to PT messaging and marks unavailable AI as coming soon', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) =>
+        Promise.resolve({
+          ok: true,
+          json: async () => (url === '/api/chat/status' ? { configured: false } : []),
+        }),
+      ),
+    )
     render(<PTChat {...props} />)
 
-    expect(screen.getByLabelText('Chat with')).toHaveValue('ai')
-    fireEvent.change(screen.getByLabelText('Chat with'), { target: { value: 'pt' } })
+    expect(screen.getByLabelText('Chat with')).toHaveValue('pt')
+    await waitFor(() => expect(screen.getByRole('option', { name: 'RehabPro AI Coach (Coming soon)' })).toBeDisabled())
     expect(screen.getByText('Keep today lighter.')).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText('Message your PT'), { target: { value: 'My knee is sore.' } })
@@ -32,19 +40,38 @@ describe('PTChat', () => {
     expect(props.onSendPtMessage).toHaveBeenCalledWith('thread_jason', 'My knee is sore.')
   })
 
+  it('shows a direct care-team message without an empty conversation bubble', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) =>
+        Promise.resolve({
+          ok: true,
+          json: async () => (url === '/api/chat/status' ? { configured: false } : []),
+        }),
+      ),
+    )
+    render(<PTChat {...props} ptThread={null} />)
+
+    expect(screen.getByText('Messages go directly to your care team.')).toBeInTheDocument()
+    expect(screen.queryByText('Your care team has not started a conversation yet.')).not.toBeInTheDocument()
+  })
+
   it('sends patient context to the AI endpoint', async () => {
     const fetchMock = vi
       .fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => ({ configured: true }) })
       .mockResolvedValueOnce({ ok: true, json: async () => [] })
       .mockResolvedValueOnce({ ok: true, json: async () => ({ reply: 'Use a slower tempo.' }) })
     vi.stubGlobal('fetch', fetchMock)
     render(<PTChat {...props} />)
 
+    await waitFor(() => expect(screen.getByRole('option', { name: 'RehabPro AI Coach' })).toBeEnabled())
+    fireEvent.change(screen.getByLabelText('Chat with'), { target: { value: 'ai' } })
     fireEvent.change(screen.getByLabelText('Ask the AI coach'), { target: { value: 'Check my squat form' } })
     fireEvent.click(screen.getByLabelText('Send message'))
 
     await waitFor(() => expect(screen.getByText('Use a slower tempo.')).toBeInTheDocument())
-    const request = JSON.parse(fetchMock.mock.calls[1][1].body)
+    const request = JSON.parse(fetchMock.mock.calls[2][1].body)
     expect(request.patientContext).toEqual({ injury: 'ACL / Meniscus' })
     expect(request.text).toBe('Check my squat form')
   })

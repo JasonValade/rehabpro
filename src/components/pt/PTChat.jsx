@@ -43,8 +43,9 @@ function ChatBubble({ side, children, accent = false }) {
   );
 }
 
-export function PTChat({ patientId, patientName, patientContext, ptThread, onSendPtMessage }) {
-  const [mode, setMode] = useState("ai");
+export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage }) {
+  const [mode, setMode] = useState("pt");
+  const [aiAvailable, setAiAvailable] = useState(false);
   const [messages, setMessages] = useState([AI_WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -54,18 +55,28 @@ export function PTChat({ patientId, patientName, patientContext, ptThread, onSen
   useEffect(() => {
     if (!patientId) return;
 
-    const loadHistory = async () => {
+    const loadChat = async () => {
       try {
-        const res = await fetch(`/api/chat/history?patientId=${encodeURIComponent(patientId)}`);
-        if (!res.ok) throw new Error("Failed to load chat history");
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) setMessages(data.map(messageFromApi));
+        const [statusResponse, historyResponse] = await Promise.all([
+          fetch("/api/chat/status"),
+          fetch(`/api/chat/history?patientId=${encodeURIComponent(patientId)}`),
+        ]);
+
+        if (statusResponse.ok) {
+          const status = await statusResponse.json();
+          setAiAvailable(Boolean(status.configured));
+        }
+
+        if (historyResponse.ok) {
+          const history = await historyResponse.json();
+          if (Array.isArray(history) && history.length > 0) setMessages(history.map(messageFromApi));
+        }
       } catch {
-        // The welcome message keeps the prototype useful while the API is offline.
+        // PT messaging remains available while the optional AI service is offline.
       }
     };
 
-    loadHistory();
+    loadChat();
   }, [patientId]);
 
   useEffect(() => {
@@ -148,7 +159,7 @@ export function PTChat({ patientId, patientName, patientContext, ptThread, onSen
               cursor: "pointer",
             }}
           >
-            <option value="ai">RehabPro AI Coach</option>
+            <option value="ai" disabled={!aiAvailable}>RehabPro AI Coach{aiAvailable ? "" : " (Coming soon)"}</option>
             <option value="pt">My Physical Therapist</option>
           </select>
           <span aria-hidden="true" style={{ position: "absolute", top: "50%", right: 13, color: mode === "ai" ? C.blue : C.lime, fontSize: 12, pointerEvents: "none", transform: "translateY(-50%)" }}>
@@ -164,7 +175,7 @@ export function PTChat({ patientId, patientName, patientContext, ptThread, onSen
         <div style={{ marginTop: 3, fontFamily: "'DM Sans', sans-serif", fontSize: 11, lineHeight: 1.45, color: C.muted }}>
           {mode === "ai"
             ? "General education only. For severe pain, a new deformity, chest pain, trouble breathing, or new numbness or weakness, seek urgent medical care."
-            : `Messages go to your care team and may not be read immediately${patientName ? `, ${patientName.split(" ")[0]}` : ""}.`}
+            : "Messages go directly to your care team."}
         </div>
       </div>
 
@@ -177,7 +188,6 @@ export function PTChat({ patientId, patientName, patientContext, ptThread, onSen
             </ChatBubble>
           );
         })}
-        {mode === "pt" && !ptThread && <ChatBubble side="left">Your care team has not started a conversation yet.</ChatBubble>}
         {loading && <ChatBubble side="left">Thinking...</ChatBubble>}
         <div ref={bottomRef} />
       </div>

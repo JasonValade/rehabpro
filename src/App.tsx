@@ -5,6 +5,7 @@ import { MILESTONES, REHAB_TODAY, INTAKE_REHAB_TODAY, PATIENT_DEMO_PROFILES, PT_
 import { MOCK_CHECK_INS } from './data/mockCheckIns'
 import { MOCK_REPORTS } from './data/mockReports'
 import { useLocalStorageState } from './hooks/useLocalStorageState'
+import { formatSymptomReportMessage } from './utils/reportChat.js'
 import { HomeView } from './components/patient/HomeView.jsx'
 import { TrainView } from './components/patient/TrainView.jsx'
 import { ProgressView } from './components/patient/ProgressView.jsx'
@@ -160,6 +161,13 @@ export default function RehabPro() {
     setActiveThreadId(PT_THREADS[0].id)
   }
 
+  const handleResetDemo = () => {
+    Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('rehabpro:'))
+      .forEach((key) => window.localStorage.removeItem(key))
+    window.location.reload()
+  }
+
   const handleSelectPatient = (patientId: string) => {
     setSelectedPatientId(patientId)
     setPtDetailMode(true)
@@ -229,16 +237,49 @@ export default function RehabPro() {
       return
     }
 
+    const timestamp = Date.now()
     const report = {
-      id: `r_${Date.now()}`,
+      id: `r_${timestamp}`,
       patientId,
-      ts: Date.now(),
+      ts: timestamp,
       ...reportDetails,
       ptRead: false,
       ptReply: null,
     }
 
     setReports((prev) => [report, ...prev])
+
+    const reportMessage = formatSymptomReportMessage(reportDetails)
+    setPtThreads((prev) => {
+      const existingThread = prev.find((thread) => thread.patientId === patientId)
+
+      if (!existingThread) {
+        return [
+          ...prev,
+          {
+            id: `thread_${patientId}`,
+            patientId,
+            patientName: signedInUser.name,
+            updated: 'Now',
+            excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
+            hasReport: true,
+            messages: [{ sender: 'patient', text: reportMessage, ts: timestamp }],
+          },
+        ]
+      }
+
+      return prev.map((thread) =>
+        thread.patientId === patientId
+          ? {
+              ...thread,
+              updated: 'Now',
+              excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
+              hasReport: true,
+              messages: [...thread.messages, { sender: 'patient', text: reportMessage, ts: timestamp }],
+            }
+          : thread,
+      )
+    })
   }
 
   const handleSubmitSessionCheckIn = (checkInDetails: any) => {
@@ -296,6 +337,9 @@ export default function RehabPro() {
             <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 32, color: C.bone, marginBottom: 16 }}>
               REHAB<span style={{ color: C.lime }}>PRO</span>
             </div>
+            <div style={{ padding: '10px 12px', borderRadius: 14, border: `1px solid ${C.amber}55`, background: C.amberDim, color: C.bone, fontFamily: "'DM Sans', sans-serif", fontSize: 12, lineHeight: 1.5, marginBottom: 16 }}>
+              Prototype demo only. Use fake demo data; do not enter real patient or medical information.
+            </div>
             <div style={{ fontSize: 14, lineHeight: 1.6, color: C.muted, marginBottom: 24 }}>
               Choose a demo patient. One returns to an active plan, the other starts with script intake.
             </div>
@@ -342,6 +386,13 @@ export default function RehabPro() {
                 style={{ width: '100%', padding: '14px 16px', borderRadius: 14, border: 'none', background: C.lime, color: C.black, fontFamily: "'Bebas Neue', cursive", fontSize: 14, letterSpacing: '0.08em' }}
               >
                 START RETURNING PATIENT DEMO
+              </button>
+              <button
+                type="button"
+                onClick={handleResetDemo}
+                style={{ width: '100%', padding: '11px 16px', borderRadius: 14, border: `1px solid ${C.rim}`, background: 'transparent', color: C.muted, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: '0.08em' }}
+              >
+                RESET DEMO DATA
               </button>
             </div>
           </div>
@@ -471,8 +522,8 @@ export default function RehabPro() {
           {tab === 'home' && (currentRole === 'pt' ? <PtHomeView patients={ptPatients} selectedPatientId={selectedPatientId} onSelectPatient={handleSelectPatient} unresolvedReports={unresolvedReports} recentCheckIns={recentCheckIns} /> : isIntakePatient ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />)}
           {tab === 'train' && (currentRole === 'pt' ? <PtTrainView patient={selectedPatient} exerciseNames={EXERCISE_NAMES} onAssign={handleAssignExercise} onUnassign={handleUnassignExercise} /> : isIntakePatient && !intake.completed ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />)}
           {tab === 'progress' && <ProgressView patientProfile={currentPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} checkIns={checkIns.filter((checkIn) => checkIn.patientId === signedInUser.patientId && checkIn.type === 'session')} />}
-          {tab === 'pt' && (currentRole === 'pt' ? <MessagesView threads={ptThreads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} onSendMessage={handleSendPtMessage} onBack={() => setActiveThreadId('')} /> : <PTChat patientId={signedInUser.patientId} patientName={signedInUser.name} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={ptThreads.find((thread) => thread.patientId === signedInUser.patientId)} onSendPtMessage={handleSendPatientMessage} />)}
-          {tab === 'report' && currentRole !== 'pt' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} />}
+          {tab === 'pt' && (currentRole === 'pt' ? <MessagesView threads={ptThreads} activeThreadId={activeThreadId} onSelectThread={setActiveThreadId} onSendMessage={handleSendPtMessage} onBack={() => setActiveThreadId('')} /> : <PTChat patientId={signedInUser.patientId} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={ptThreads.find((thread) => thread.patientId === signedInUser.patientId)} onSendPtMessage={handleSendPatientMessage} />)}
+          {tab === 'report' && currentRole !== 'pt' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} onOpenMessages={() => setTab('pt')} />}
         </div>
 
         <div
@@ -484,11 +535,14 @@ export default function RehabPro() {
             maxWidth: 'min(430px, 100%)',
             margin: '0 auto',
             borderTop: `1px solid ${C.rim}`,
-            background: C.deep,
+            background: 'rgba(15, 16, 16, 0.96)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             display: 'flex',
-            padding: '10px 4px calc(20px + env(safe-area-inset-bottom, 0))',
+            gap: 3,
+            padding: '8px 8px calc(10px + env(safe-area-inset-bottom, 0))',
             zIndex: 20,
-            boxShadow: '0 -8px 24px rgba(0,0,0,0.35)',
+            boxShadow: '0 -10px 30px rgba(0,0,0,0.42)',
           }}
         >
           {(currentRole === 'pt' ? (ptDetailMode ? PT_PATIENT_TABS : PT_HOME_TABS) : isIntakePatient && !intake.completed ? TABS.filter((item) => item.id === 'home') : TABS).map((t) => {
@@ -500,19 +554,50 @@ export default function RehabPro() {
                 onClick={() => setTab(t.id)}
                 style={{
                   flex: 1,
-                  padding: '12px 0 10px',
-                  border: 'none',
-                  background: 'transparent',
+                  minWidth: 0,
+                  padding: '8px 2px 7px',
+                  border: `1px solid ${active ? C.limeMid : 'transparent'}`,
+                  borderRadius: 13,
+                  background: active ? C.limeDim : 'transparent',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: 5,
-                  transition: 'all 0.15s',
+                  justifyContent: 'center',
+                  gap: 4,
+                  minHeight: 54,
+                  transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
                 }}
               >
-                <div style={{ fontSize: 20, color: active ? C.lime : C.muted, transition: 'color 0.15s' }}>{t.icon}</div>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 11, letterSpacing: '0.1em', color: active ? C.lime : C.muted, transition: 'color 0.15s' }}>{t.label}</div>
-                {active && <div style={{ width: 18, height: 2, borderRadius: 1, background: C.lime }} />}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    height: 21,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    lineHeight: 1,
+                    color: active ? C.lime : C.ghost,
+                    filter: active ? `drop-shadow(0 0 7px ${C.limeMid})` : 'none',
+                    transition: 'color 0.15s, filter 0.15s',
+                  }}
+                >
+                  {t.icon}
+                </div>
+                <div
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontFamily: "'Bebas Neue', cursive",
+                    fontSize: 11,
+                    lineHeight: 1,
+                    letterSpacing: '0.08em',
+                    color: active ? C.lime : C.muted,
+                    transition: 'color 0.15s',
+                  }}
+                >
+                  {t.label}
+                </div>
               </button>
             )
           })}
