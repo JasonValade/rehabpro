@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Tag } from "../ui/Tag";
 import { C } from "../../constants/colors";
 import { EXERCISE_LIBRARY } from "../../data/exerciseLibrary";
@@ -82,7 +82,114 @@ function ExerciseCard({ item, index, onToggle, onDetails }) {
   );
 }
 
-export function TrainView({ rehabItems, setRehabItems }) {
+function RatingField({ label, value, onChange, lowLabel, highLabel, color }) {
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 9 }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, fontWeight: 600 }}>{label}</div>
+        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color }}>{value}<span style={{ fontSize: 12, color: C.muted }}> /10</span></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(11, 1fr)", gap: 3 }}>
+        {Array.from({ length: 11 }, (_, rating) => (
+          <button
+            key={rating}
+            type="button"
+            onClick={() => onChange(rating)}
+            aria-label={`${label} ${rating} out of 10`}
+            aria-pressed={value === rating}
+            style={{
+              minWidth: 0,
+              height: 29,
+              borderRadius: 6,
+              border: `1px solid ${value === rating ? color : C.rim}`,
+              background: value === rating ? color + "25" : C.deep,
+              color: value === rating ? color : C.muted,
+              fontFamily: "'Fira Code', monospace",
+              fontSize: 9,
+            }}
+          >
+            {rating}
+          </button>
+        ))}
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "'Fira Code', monospace", fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+        <span>{lowLabel}</span>
+        <span>{highLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+function SessionCheckIn({ completed, total, onSubmit }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [ratings, setRatings] = useState({ pain: null, swelling: null, difficulty: null });
+  const skipped = total - completed;
+  const canSubmit = Object.values(ratings).every((rating) => rating !== null);
+
+  const submit = () => {
+    if (!canSubmit) return;
+
+    onSubmit?.({
+      ...ratings,
+      done: completed,
+      total,
+      completion: total ? Math.round((completed / total) * 100) : 0,
+    });
+    setSubmitted(true);
+    setIsOpen(false);
+  };
+
+  if (submitted) {
+    return (
+      <div style={{ padding: 16, borderRadius: 16, background: C.limeDim, border: `1px solid ${C.lime}55` }}>
+        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.lime }}>SESSION SAVED</div>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, lineHeight: 1.5, marginTop: 4 }}>
+          Your check-in and {completed}/{total} completion have been added to Progress.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ padding: 16, borderRadius: 16, background: C.panel, border: `1px solid ${isOpen ? C.lime + "60" : C.rim}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
+        <div>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.lime, letterSpacing: "0.1em", textTransform: "uppercase" }}>Finished for today?</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, lineHeight: 1.5, marginTop: 6 }}>
+            Submit even if you skipped exercises. Your progress will show {completed} complete and {skipped} skipped.
+          </div>
+        </div>
+      </div>
+
+      {!isOpen ? (
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          style={{ width: "100%", padding: "13px 16px", marginTop: 14, border: "none", borderRadius: 12, background: C.lime, color: C.black, fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 700 }}
+        >
+          End session and check in
+        </button>
+      ) : (
+        <div style={{ display: "grid", gap: 18, marginTop: 18 }}>
+          <RatingField label="Pain" value={ratings.pain ?? "–"} onChange={(pain) => setRatings((current) => ({ ...current, pain }))} lowLabel="No pain" highLabel="Severe" color={C.red} />
+          <RatingField label="Swelling" value={ratings.swelling ?? "–"} onChange={(swelling) => setRatings((current) => ({ ...current, swelling }))} lowLabel="None" highLabel="Severe" color={C.blue} />
+          <RatingField label="Difficulty" value={ratings.difficulty ?? "–"} onChange={(difficulty) => setRatings((current) => ({ ...current, difficulty }))} lowLabel="Easy" highLabel="Very hard" color={C.amber} />
+          <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 8 }}>
+            <button type="button" onClick={() => setIsOpen(false)} style={{ padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.rim}`, background: C.deep, color: C.muted, fontSize: 12 }}>
+              Cancel
+            </button>
+            <button type="button" onClick={submit} disabled={!canSubmit} style={{ padding: "12px 14px", borderRadius: 12, border: "none", background: C.lime, color: C.black, fontSize: 12, fontWeight: 700, opacity: canSubmit ? 1 : 0.35 }}>
+              Save session
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TrainView({ rehabItems, setRehabItems, onSubmitCheckIn }) {
   const [selectedExerciseId, setSelectedExerciseId] = useState(null);
 
   useEffect(() => {
@@ -181,6 +288,8 @@ export function TrainView({ rehabItems, setRehabItems }) {
           />
         ))}
       </div>
+
+      <SessionCheckIn completed={completed} total={total} onSubmit={onSubmitCheckIn} />
     </div>
   );
 }

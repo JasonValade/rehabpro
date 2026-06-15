@@ -26,17 +26,31 @@ function TrendCard({ label, value, unit, data, color, direction, sub }) {
 }
 
 /**
- * @param {{ patientProfile?: any; milestones: any[]; progressData?: any[]; completionHistory?: any[] }} props
+ * @param {{ patientProfile?: any; milestones: any[]; progressData?: any[]; completionHistory?: any[]; checkIns?: any[] }} props
  */
-export function ProgressView({ patientProfile, milestones, progressData, completionHistory }) {
-  const recoveryProgress = progressData || [];
-  const completionDays = completionHistory || [];
+export function ProgressView({ patientProfile, milestones, progressData, completionHistory, checkIns = [] }) {
+  const sessionProgress = [...checkIns]
+    .sort((a, b) => a.ts - b.ts)
+    .map((checkIn) => ({
+      label: new Date(checkIn.ts).toLocaleDateString(undefined, { month: "short", day: "numeric" }),
+      pain: checkIn.pain,
+      swelling: checkIn.swelling,
+      difficulty: checkIn.difficulty,
+      completion: checkIn.completion,
+    }));
+  const recoveryProgress = [...(progressData || []), ...sessionProgress];
+  const savedCompletionDays = checkIns.slice(-7).map((checkIn) => ({
+    day: new Date(checkIn.ts).toLocaleDateString(undefined, { weekday: "short" }),
+    done: checkIn.done,
+    total: checkIn.total,
+  }));
+  const completionDays = savedCompletionDays.length ? savedCompletionDays : completionHistory || [];
   const achieved = milestones.filter((m) => m.achieved).length;
   const latest = recoveryProgress[recoveryProgress.length - 1] || { pain: 0, swelling: 0, rom: 0, difficulty: 0, completion: 0 };
   const first = recoveryProgress[0] || latest;
   const painSeries = recoveryProgress.map((d) => d.pain);
   const swellingSeries = recoveryProgress.map((d) => d.swelling);
-  const romSeries = recoveryProgress.map((d) => d.rom);
+  const romSeries = recoveryProgress.filter((d) => typeof d.rom === "number").map((d) => d.rom);
   const difficultySeries = recoveryProgress.map((d) => d.difficulty);
   const completionSeries = recoveryProgress.map((d) => d.completion);
 
@@ -82,7 +96,7 @@ export function ProgressView({ patientProfile, milestones, progressData, complet
             Range gained
           </div>
           <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone }}>
-            +{latest.rom - first.rom}°
+            +{(recoveryProgress.filter((item) => typeof item.rom === "number").at(-1)?.rom ?? first.rom) - first.rom}°
             <span style={{ fontSize: 14, color: C.muted }}> flexion</span>
           </div>
         </div>
@@ -91,7 +105,7 @@ export function ProgressView({ patientProfile, milestones, progressData, complet
       <div style={{ display: "grid", gap: 10 }}>
         <TrendCard label="Pain" value={latest.pain} unit="/10" data={painSeries} color={C.lime} direction="Down" sub="Morning pain has dropped while exercise tolerance has improved." />
         <TrendCard label="Swelling" value={latest.swelling} unit="/10" data={swellingSeries} color={C.blue} direction="Down" sub="Swelling response is staying low after higher completion days." />
-        <TrendCard label="Range of Motion" value={latest.rom} unit="degrees" data={romSeries} color={C.amber} direction="Up" sub="Knee flexion is trending toward the next milestone target." />
+        <TrendCard label="Range of Motion" value={recoveryProgress.filter((item) => typeof item.rom === "number").at(-1)?.rom ?? 0} unit="degrees" data={romSeries} color={C.amber} direction="Up" sub="Knee flexion is trending toward the next milestone target." />
         <TrendCard label="Difficulty" value={latest.difficulty} unit="/10" data={difficultySeries} color={C.red} direction="Down" sub="The same plan feels easier as strength and control return." />
       </div>
 

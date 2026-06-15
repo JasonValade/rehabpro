@@ -1,7 +1,7 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { C } from "../../constants/colors";
 
-export function ReportView({ rehabItems }) {
+export function ReportView({ rehabItems, onSubmit }) {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState({ exercise: "", pain: 0, swelling: 0, location: "", note: "" });
   const [submitted, setSubmitted] = useState(false);
@@ -9,6 +9,7 @@ export function ReportView({ rehabItems }) {
   const setF = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = () => {
+    onSubmit(form);
     setSubmitted(true);
     setTimeout(() => {
       setSubmitted(false);
