@@ -243,7 +243,7 @@ export const PT_THREADS = [
   {
     id: "thread_jason",
     patientId: "pt_jason",
-    patientName: "Jason M.",
+    patientName: "Jason V.",
     updated: "2h ago",
     excerpt: "Knee is tight after the heel slides. Need to adjust today.",
     hasReport: true,
