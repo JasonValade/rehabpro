@@ -2,6 +2,15 @@
 
 RehabPro is a React + Vite rehabilitation dashboard prototype for patient rehab workflows. The app includes a lightweight Express backend, local state persistence, and a shared UI layer for tracking workouts, progress, symptom reports, and care-team messaging.
 
+## Product vision
+
+RehabPro should feel like a two-sided rehab platform with different interfaces for different daily contexts:
+
+- **Patient app:** mobile-first for home rehab, exercise guidance, symptom reporting, progress, and PT messaging.
+- **PT portal:** desktop-first for reviewing a daily caseload, triaging symptom reports, scanning adherence and progress trends, messaging patients, and adjusting assigned exercises.
+
+The demo should make that distinction clear: patients use RehabPro in the flow of training at home, while PTs use RehabPro as a computer-based clinical work queue on a normal review day.
+
 ## What this repo includes
 
 - `src/`: React application entrypoints, views, hooks, and UI components
@@ -98,10 +107,10 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 
 ## Demo flow
 
-1. Select `Returning patient` or click `Start returning patient demo`.
+1. Choose `Returning patient demo`, `New intake demo`, or `Physical therapist demo`.
 2. Open `Train`, review an exercise, and mark one complete.
 3. Open `Report`, submit a symptom report, then click `View in PT messages`.
-4. Show the structured report inside the PT conversation.
+4. Sign out, open `Physical therapist demo`, and show the structured report inside the PT conversation.
 5. Sign out and use `Reset demo data` before the next presentation.
 
 ## Architecture notes

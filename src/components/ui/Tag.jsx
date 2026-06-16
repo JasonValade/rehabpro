@@ -1,3 +1,4 @@
+import React from "react";
 import { C } from "../../constants/colors";
 
 export function Tag({ label, color = C.lime }) {

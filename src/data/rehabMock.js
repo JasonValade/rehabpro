@@ -176,7 +176,7 @@ export const PT_PATIENTS = [
     week: 14,
     status: "At home",
     profile: "Competitive basketball athlete",
-    avatar: "JM",
+    avatar: "JV",
     color: "#c8ff00",
     assignedExercises: ["Terminal Knee Extension", "Wall Slides", "SLR", "Calf Raises"],
     alert: true,
