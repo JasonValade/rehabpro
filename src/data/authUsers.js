@@ -7,13 +7,6 @@ export const AUTH_USERS = [
     patientId: "pt_jason",
   },
   {
-    username: "intake",
-    password: "patient123",
-    role: "patient",
-    name: "New Intake",
-    patientId: "pt_intake",
-  },
-  {
     username: "therapist",
     password: "pt123",
     role: "pt",

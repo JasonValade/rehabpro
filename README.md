@@ -107,7 +107,7 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 
 ## Demo flow
 
-1. Choose `Returning patient demo`, `New intake demo`, or `Physical therapist demo`.
+1. Choose `Returning patient demo` or `Physical therapist demo`.
 2. Open `Train`, review an exercise, and mark one complete.
 3. Open `Report`, submit a symptom report, then click `View in PT messages`.
 4. Sign out, open `Physical therapist demo`, and show the structured report inside the PT conversation.

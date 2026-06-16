@@ -7,7 +7,7 @@ const props = {
   patientName: 'Jason V.',
   patientContext: { injury: 'ACL / Meniscus' },
   ptThread: {
-    id: 'thread_jason',
+    id: 'thread_pt_jason',
     messages: [{ sender: 'pt', text: 'Keep today lighter.', ts: 1 }],
   },
   onSendPtMessage: vi.fn(),
@@ -37,7 +37,7 @@ describe('PTChat', () => {
 
     fireEvent.change(screen.getByLabelText('Message your PT'), { target: { value: 'My knee is sore.' } })
     fireEvent.click(screen.getByLabelText('Send message'))
-    expect(props.onSendPtMessage).toHaveBeenCalledWith('thread_jason', 'My knee is sore.')
+    expect(props.onSendPtMessage).toHaveBeenCalledWith('thread_pt_jason', 'My knee is sore.')
   })
 
   it('shows a direct care-team message without an empty conversation bubble', async () => {

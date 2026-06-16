@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { C } from './constants/colors'
 import { AUTH_USERS } from './data/authUsers'
-import { MILESTONES, REHAB_TODAY, INTAKE_REHAB_TODAY, PATIENT_DEMO_PROFILES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES, RETURNING_PATIENT_PROGRESS, RETURNING_PATIENT_COMPLETION_HISTORY } from './data/rehabMock'
+import { MILESTONES, REHAB_TODAY, PATIENT_DEMO_PROFILES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES, RETURNING_PATIENT_PROGRESS, RETURNING_PATIENT_COMPLETION_HISTORY } from './data/rehabMock'
 import { MOCK_CHECK_INS } from './data/mockCheckIns'
 import { MOCK_REPORTS } from './data/mockReports'
+import { EXERCISE_LIBRARY } from './data/exerciseLibrary'
 import { useLocalStorageState } from './hooks/useLocalStorageState'
 import { formatSymptomReportMessage } from './utils/reportChat.js'
 import { HomeView } from './components/patient/HomeView.jsx'
 import { TrainView } from './components/patient/TrainView.jsx'
 import { ProgressView } from './components/patient/ProgressView.jsx'
 import { ReportView } from './components/patient/ReportView.jsx'
-import { IntakeView } from './components/patient/IntakeView.jsx'
 import { PtPortalView } from './components/pt/PtPortalView.jsx'
 import { PTChat } from './components/pt/PTChat.jsx'
 
@@ -33,17 +33,6 @@ const TABS = [
   { id: 'report', icon: '◇', label: 'REPORT' },
 ]
 
-const PT_HOME_TABS = [
-  { id: 'home', icon: '⬡', label: 'HOME' },
-  { id: 'pt', icon: '⊕', label: 'MSG' },
-]
-
-const PT_PATIENT_TABS = [
-  { id: 'train', icon: '◈', label: 'TRAIN' },
-  { id: 'progress', icon: '◎', label: 'PROGRESS' },
-  { id: 'pt', icon: '⊕', label: 'MSG' },
-]
-
 const SCHEDULE = [
   { workout: 'Mobility + Rehab', details: 'Hip hinge, terminal knee extension, wall slides', highlight: 'Active this week' },
   { workout: 'Strength + Balance', details: 'Step-ups, band walks, single-leg balance', highlight: 'Repeats weekly' },
@@ -51,32 +40,6 @@ const SCHEDULE = [
   { workout: 'Load Tolerance', details: 'Goblet squat, mini squat, calf raise', highlight: 'Repeats weekly' },
   { workout: 'Sport Prep', details: 'Agility ladder, hop progressions, landing', highlight: 'Repeats weekly' },
 ]
-
-const NOTIFICATION_SUMMARY = {
-  pt: {
-    title: 'PT dashboard',
-    message: 'New patient reports and check-ins require review.',
-  },
-}
-
-const INITIAL_INTAKE = {
-  step: 0,
-  completed: false,
-  firstName: '',
-  lastName: '',
-  dateOfBirth: '',
-  injury: '',
-  injurySide: '',
-  treatmentStage: '',
-  scriptFileName: '',
-  scriptText: '',
-  pain: '',
-  swelling: '',
-  primaryGoal: '',
-  redFlags: '',
-  oversight: '',
-  additionalNotes: '',
-}
 
 const normalizePtPatient = (patient: any) => {
   if (patient.id === 'pt_jason' && patient.avatar !== 'JV') {
@@ -86,7 +49,7 @@ const normalizePtPatient = (patient: any) => {
   return patient
 }
 
-const visiblePtPatients = (patients: any[]) => patients.map(normalizePtPatient).filter((patient) => patient.id !== 'pt_intake')
+const visiblePtPatients = (patients: any[]) => patients.map(normalizePtPatient)
 
 const backfillDemoCheckIns = (checkIns: any[]) => {
   const existingIds = new Set(checkIns.map((checkIn) => checkIn.id))
@@ -108,6 +71,81 @@ const formatThreadUpdated = (ts: number) => {
 }
 
 const reportThreadId = (patientId: string) => `thread_${patientId}`
+
+const EXERCISE_ALIASES: Record<string, string> = {
+  slr: 'Straight Leg Raise',
+  bridges: 'Glute Bridge',
+  'calf raises': 'Bilateral Calf Raises',
+}
+
+const normalizeExerciseName = (name: string) => EXERCISE_ALIASES[name.trim().toLowerCase()] || name
+
+const makeExerciseItem = (name: string, index: number, previousItem?: any) => {
+  const normalizedName = normalizeExerciseName(name)
+  const source: any =
+    REHAB_TODAY.find((item) => item.name === normalizedName)
+  const libraryItem = EXERCISE_LIBRARY.find((exercise) => exercise.name === normalizedName)
+
+  return {
+    id: source?.id ?? libraryItem?.id ?? `assigned-${index + 1}`,
+    name: normalizedName,
+    sets: source?.sets ?? libraryItem?.sets ?? 3,
+    reps: source?.reps ?? libraryItem?.reps ?? '10',
+    done: previousItem?.done ?? source?.done ?? false,
+    tag: source?.tag ?? libraryItem?.stages?.[0]?.toUpperCase() ?? 'ASSIGNED',
+    videoStatus: source?.videoStatus,
+    youtubeId: source?.youtubeId,
+    youtubeUrl: source?.youtubeUrl ?? libraryItem?.youtubeUrl,
+    reminder: source?.reminder,
+    instructions: source?.instructions,
+    clinicalNotes: source?.clinicalNotes,
+    rest: libraryItem?.rest,
+  }
+}
+
+const assignedPlanItems = (patientId: string | null, patients: any[], previousItems: any[] = []) => {
+  const patient = patients.find((candidate) => candidate.id === patientId)
+  if (!patient?.assignedExercises?.length) {
+    return null
+  }
+
+  const previousByName = new Map(previousItems.map((item) => [normalizeExerciseName(item.name), item]))
+  return patient.assignedExercises.map((exercise: string, index: number) => {
+    const normalizedName = normalizeExerciseName(exercise)
+    return makeExerciseItem(normalizedName, index, previousByName.get(normalizedName))
+  })
+}
+
+const normalizeThreadIds = (threads: any[]) => {
+  const mergedByPatient = new Map<string, any>()
+
+  threads.forEach((thread) => {
+    const patientId = thread.patientId || thread.id?.replace(/^thread_/, '')
+    if (!patientId) return
+
+    const id = reportThreadId(patientId)
+    const existing = mergedByPatient.get(patientId)
+    if (!existing) {
+      mergedByPatient.set(patientId, { ...thread, id, patientId, messages: [...(thread.messages || [])] })
+      return
+    }
+
+    mergedByPatient.set(patientId, {
+      ...existing,
+      ...thread,
+      id,
+      patientId,
+      hasReport: existing.hasReport || thread.hasReport,
+      messages: [...(existing.messages || []), ...(thread.messages || [])]
+        .filter((message, index, messages) =>
+          index === messages.findIndex((candidate) => candidate.ts === message.ts && candidate.sender === message.sender && candidate.text === message.text),
+        )
+        .sort((a, b) => (a.ts || 0) - (b.ts || 0)),
+    })
+  })
+
+  return Array.from(mergedByPatient.values())
+}
 
 const mergeReportsIntoThreads = (threads: any[], reports: any[], patients: any[]) => {
   const patientById = new Map(patients.map((patient) => [patient.id, patient]))
@@ -183,9 +221,9 @@ const mergeReportsIntoThreads = (threads: any[], reports: any[], patients: any[]
 }
 
 function mergeExerciseMetadata(savedItems: any[], sourceItems: any[]) {
-  return savedItems.map((item) => {
-    const source = sourceItems.find((candidate) => candidate.id === item.id || candidate.name === item.name)
-    return source ? { ...source, done: item.done } : item
+  return sourceItems.map((source) => {
+    const saved = savedItems.find((item) => item.id === source.id || item.name === source.name)
+    return saved ? { ...source, done: saved.done } : source
   })
 }
 
@@ -197,12 +235,10 @@ export default function RehabPro() {
   const [rehabItems, setRehabItems] = useLocalStorageState<any[]>('rehabpro:rehabItems', REHAB_TODAY)
   const [ptPatients, setPtPatients] = useLocalStorageState('rehabpro:ptPatients', visiblePtPatients(PT_PATIENTS))
   const [selectedPatientId, setSelectedPatientId] = useLocalStorageState<string | null>('rehabpro:selectedPatientId', null)
-  const [ptDetailMode, setPtDetailMode] = useLocalStorageState('rehabpro:ptDetailMode', false)
   const [ptThreads, setPtThreads] = useLocalStorageState('rehabpro:ptThreads', PT_THREADS)
   const [activeThreadId, setActiveThreadId] = useLocalStorageState('rehabpro:activeThreadId', PT_THREADS[0].id)
   const [reports, setReports] = useLocalStorageState('rehabpro:reports', MOCK_REPORTS)
   const [checkIns, setCheckIns] = useLocalStorageState<any[]>('rehabpro:checkIns', MOCK_CHECK_INS)
-  const [intake, setIntake] = useLocalStorageState('rehabpro:intake:pt_intake', INITIAL_INTAKE)
 
   const signedInUser = authUser
   const patientUser = authUser?.role === 'patient' ? authUser : null
@@ -212,8 +248,7 @@ export default function RehabPro() {
   const selectedPatientProfile = selectedPatientId ? patientProfiles[selectedPatientId] : null
   const progressPatientId = patientUser?.patientId ?? selectedPatientId
   const progressPatientProfile = currentRole === 'pt' ? selectedPatientProfile : currentPatientProfile
-  const isIntakePatient = patientUser?.patientId === 'pt_intake'
-  const demoPatientUsers = AUTH_USERS.filter((user) => user.role === 'patient' && user.patientId && user.patientId !== 'pt_intake' && patientProfiles[user.patientId])
+  const demoPatientUsers = AUTH_USERS.filter((user) => user.role === 'patient' && user.patientId && patientProfiles[user.patientId])
   const demoPtUser = AUTH_USERS.find((user) => user.role === 'pt')
   const demoOptions = [...demoPatientUsers, ...(demoPtUser ? [demoPtUser] : [])]
   const visiblePatients = visiblePtPatients(ptPatients)
@@ -233,6 +268,13 @@ export default function RehabPro() {
   }, [setCheckIns])
 
   useEffect(() => {
+    setPtThreads((prev) => {
+      const normalized = normalizeThreadIds(prev)
+      return JSON.stringify(normalized) === JSON.stringify(prev) ? prev : normalized
+    })
+  }, [setPtThreads])
+
+  useEffect(() => {
     if (tab === 'train') {
       contentScrollRef.current?.scrollTo({ top: 0 })
     }
@@ -243,27 +285,23 @@ export default function RehabPro() {
       return
     }
 
-    const sourceItems = authUser.patientId === 'pt_intake' ? INTAKE_REHAB_TODAY : REHAB_TODAY
     setRehabItems((prev) => {
+      const sourceItems = assignedPlanItems(authUser.patientId, ptPatients, prev) ?? REHAB_TODAY
       const merged = mergeExerciseMetadata(prev, sourceItems)
       return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged
     })
-  }, [authUser?.patientId, authUser?.role, setRehabItems])
+  }, [authUser?.patientId, authUser?.role, ptPatients, setRehabItems])
 
-  const selectedPatient = visiblePatients.find((patient) => patient.id === selectedPatientId)
   const patientUnreadReports = patientUser?.patientId ? reports.filter((report) => report.patientId === patientUser.patientId && !report.ptRead).length : 0
-  const unresolvedReports = currentRole === 'pt' ? reports.filter((report) => !report.ptRead).length : 0
-  const recentCheckIns = currentRole === 'pt' ? checkIns.filter((checkIn) => Date.now() - checkIn.ts < 1000 * 60 * 60 * 24).length : 0
 
   const handleDemoLogin = (matchedUser: AuthUser) => {
     setAuthUser(matchedUser)
     setViewMode(matchedUser.role)
     setTab('home')
-    setPtDetailMode(false)
     setSelectedPatientId(matchedUser.role === 'pt' ? null : matchedUser.patientId || null)
-    setActiveThreadId(matchedUser.role === 'pt' ? '' : PT_THREADS.find((thread) => thread.patientId === matchedUser.patientId)?.id || PT_THREADS[0].id)
+    setActiveThreadId(matchedUser.role === 'pt' ? '' : matchedUser.patientId ? reportThreadId(matchedUser.patientId) : reportThreadId(PT_THREADS[0].patientId))
     if (matchedUser.role === 'patient') {
-      setRehabItems(matchedUser.patientId === 'pt_intake' ? INTAKE_REHAB_TODAY : REHAB_TODAY)
+      setRehabItems(assignedPlanItems(matchedUser.patientId, ptPatients) ?? REHAB_TODAY)
     }
   }
 
@@ -271,9 +309,8 @@ export default function RehabPro() {
     setAuthUser(null)
     setViewMode('patient')
     setTab('home')
-    setPtDetailMode(false)
     setSelectedPatientId(null)
-    setActiveThreadId(PT_THREADS[0].id)
+    setActiveThreadId(reportThreadId(PT_THREADS[0].patientId))
   }
 
   const handleResetDemo = () => {
@@ -281,12 +318,6 @@ export default function RehabPro() {
       .filter((key) => key.startsWith('rehabpro:'))
       .forEach((key) => window.localStorage.removeItem(key))
     window.location.reload()
-  }
-
-  const handleSelectPatient = (patientId: string) => {
-    setSelectedPatientId(patientId)
-    setPtDetailMode(true)
-    setTab('train')
   }
 
   const handleSelectPortalPatient = (patientId: string | null) => {
@@ -297,12 +328,6 @@ export default function RehabPro() {
     }
 
     setActiveThreadId(reportBackedThreads.find((thread) => thread.patientId === patientId)?.id || reportThreadId(patientId))
-  }
-
-  const handleBackToPtHome = () => {
-    setPtDetailMode(false)
-    setTab('home')
-    setActiveThreadId('')
   }
 
   const handleAssignExercise = (patientId: string, exercise: string, cadence?: string) => {
@@ -499,11 +524,6 @@ export default function RehabPro() {
     ])
   }
 
-  const handleCompleteIntake = (completedIntake: any) => {
-    setIntake(completedIntake)
-    setRehabItems(INTAKE_REHAB_TODAY)
-  }
-
   if (!signedInUser) {
     return (
       <>
@@ -691,9 +711,7 @@ export default function RehabPro() {
                   const isPtDemo = user.role === 'pt'
                   const demoDescription = isPtDemo
                     ? 'Review a daily caseload, triage symptom reports, message patients, and adjust assigned exercises.'
-                    : user.patientId === 'pt_intake'
-                      ? 'Complete script intake, capture current symptoms, and prepare a starter rehabilitation plan.'
-                      : 'Resume an active rehabilitation plan, review exercises, track progress, and report symptoms.'
+                    : 'Resume an active rehabilitation plan, review exercises, track progress, and report symptoms.'
                   return (
                     <button
                       key={user.username}
@@ -837,10 +855,10 @@ export default function RehabPro() {
         </div>
 
         <div ref={contentScrollRef} style={{ flex: 1, padding: '16px 20px', paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0))', overflowY: 'auto' }}>
-          {tab === 'home' && (isIntakePatient ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />)}
-          {tab === 'train' && (isIntakePatient && !intake.completed ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />)}
+          {tab === 'home' && <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />}
+          {tab === 'train' && <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />}
           {tab === 'progress' && <ProgressView patientProfile={progressPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} checkIns={checkIns.filter((checkIn) => checkIn.patientId === progressPatientId && checkIn.type === 'session')} />}
-          {tab === 'pt' && (patientUser ? <PTChat patientId={patientUser.patientId} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={reportBackedThreads.find((thread) => thread.patientId === patientUser.patientId)} onSendPtMessage={handleSendPatientMessage} /> : null)}
+          {tab === 'pt' && (patientUser ? <PTChat patientId={patientUser.patientId} patientContext={{ injury: currentPatientProfile?.injuryType, stage: currentPatientProfile?.rehabPhase, goal: currentPatientProfile?.assignedPlan, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={reportBackedThreads.find((thread) => thread.patientId === patientUser.patientId)} onSendPtMessage={handleSendPatientMessage} /> : null)}
           {tab === 'report' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} onOpenMessages={() => setTab('pt')} />}
         </div>
 
@@ -863,7 +881,7 @@ export default function RehabPro() {
             boxShadow: '0 -10px 30px rgba(0,0,0,0.42)',
           }}
         >
-          {(isIntakePatient && !intake.completed ? TABS.filter((item) => item.id === 'home') : TABS).map((t) => {
+          {TABS.map((t) => {
             const active = tab === t.id
             return (
               <button

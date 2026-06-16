@@ -71,7 +71,7 @@ export const REHAB_TODAY = [
   },
   {
     id: 5,
-    name: "Calf Raises",
+    name: "Bilateral Calf Raises",
     sets: 3,
     reps: "20",
     done: false,
@@ -103,13 +103,6 @@ export const RETURNING_PATIENT_COMPLETION_HISTORY = [
   { day: "Today", done: 2, total: 5 },
 ];
 
-export const INTAKE_REHAB_TODAY = [
-  { id: 1, name: "Quad Sets", sets: 3, reps: "10", done: false, tag: "SCRIPT" },
-  { id: 2, name: "Heel Slides", sets: 3, reps: "12", done: false, tag: "MOTION" },
-  { id: 3, name: "Ankle Pumps", sets: 2, reps: "30", done: false, tag: "CIRCULATION" },
-  { id: 4, name: "Glute Bridge", sets: 2, reps: "10", done: false, tag: "CONTROL" },
-];
-
 export const PATIENT_DEMO_PROFILES = {
   pt_jason: {
     id: "pt_jason",
@@ -130,26 +123,6 @@ export const PATIENT_DEMO_PROFILES = {
     homeSubhead: "Week 14 · ACL + Meniscus (L)",
     progressSubhead: "14 weeks post-op · ACL + Meniscus (L)",
     nextStep: "Continue today’s mobility and strength work if swelling stays calm.",
-  },
-  pt_intake: {
-    id: "pt_intake",
-    demoLabel: "New intake patient",
-    name: "New Intake",
-    injuryType: "ACL + Meniscus",
-    injurySide: "Left knee",
-    rehabPhase: "Script Intake",
-    phaseLabel: "Intake phase",
-    week: 0,
-    assignedPlan: "Script-Based Starter Plan",
-    doctorScriptStatus: "Script ready to read: waiting for upload",
-    ptOversightStatus: "Self-guided rehab available",
-    oversightMode: "Self guided",
-    provider: "RehabPro Intake",
-    planSummary: "Upload or enter the doctor script so RehabPro can read it and shape the first plan.",
-    homeHeadline: "START WITH\nTHE SCRIPT.",
-    homeSubhead: "Intake · ACL + Meniscus script review",
-    progressSubhead: "Intake pending · ACL + Meniscus script review",
-    nextStep: "Finish intake and choose PT assigned or self-guided oversight before progressing.",
   },
 };
 
@@ -178,22 +151,8 @@ export const PT_PATIENTS = [
     profile: "Competitive basketball athlete",
     avatar: "JV",
     color: "#c8ff00",
-    assignedExercises: ["Terminal Knee Extension", "Wall Slides", "SLR", "Calf Raises"],
+    assignedExercises: ["Terminal Knee Extension", "Wall Slides", "Straight Leg Raise", "Lateral Band Walks", "Bilateral Calf Raises"],
     alert: true,
-  },
-  {
-    id: "pt_intake",
-    name: "New Intake",
-    age: null,
-    injury: "ACL + Meniscus",
-    stage: "Script Intake",
-    week: 0,
-    status: "Self guided",
-    profile: "New demo intake",
-    avatar: "NI",
-    color: "#38beff",
-    assignedExercises: ["Quad Sets", "Heel Slides", "Ankle Pumps"],
-    alert: false,
   },
   {
     id: "pt_sara",
@@ -206,7 +165,7 @@ export const PT_PATIENTS = [
     profile: "Weekend pickleball player",
     avatar: "SK",
     color: "#38beff",
-    assignedExercises: ["Step Downs", "Single-leg Bridge", "Banded Squats"],
+    assignedExercises: ["Step-Ups", "Glute Bridge", "Spanish Squat - Isometric"],
     alert: false,
   },
   {
@@ -234,14 +193,14 @@ export const PT_PATIENTS = [
     profile: "Soccer recruit",
     avatar: "ER",
     color: "#a78bfa",
-    assignedExercises: ["Quad Sets", "Bridges", "Hip Hikes"],
+    assignedExercises: ["Quad Sets", "Glute Bridge", "Single-Leg Balance"],
     alert: true,
   },
 ];
 
 export const PT_THREADS = [
   {
-    id: "thread_jason",
+    id: "thread_pt_jason",
     patientId: "pt_jason",
     patientName: "Jason V.",
     updated: "2h ago",
@@ -253,7 +212,7 @@ export const PT_THREADS = [
     ],
   },
   {
-    id: "thread_sara",
+    id: "thread_pt_sara",
     patientId: "pt_sara",
     patientName: "Sara K.",
     updated: "45m ago",
@@ -265,7 +224,7 @@ export const PT_THREADS = [
     ],
   },
   {
-    id: "thread_mike",
+    id: "thread_pt_mike",
     patientId: "pt_mike",
     patientName: "Mike T.",
     updated: "5h ago",
@@ -277,7 +236,7 @@ export const PT_THREADS = [
     ],
   },
   {
-    id: "thread_emma",
+    id: "thread_pt_emma",
     patientId: "pt_emma",
     patientName: "Emma R.",
     updated: "1d ago",

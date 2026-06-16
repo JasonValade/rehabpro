@@ -28,7 +28,7 @@ export const MOCK_REPORTS = [
     id: "r3",
     patientId: "pt_mike",
     ts: Date.now() - 1000 * 60 * 60 * 5,
-    exercise: "Calf Raises",
+    exercise: "Bilateral Calf Raises",
     swelling: 4,
     pain: 5,
     location: "Posterior heel",

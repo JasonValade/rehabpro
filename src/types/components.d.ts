@@ -40,26 +40,6 @@ declare module './components/patient/ReportView.jsx' {
   export { ReportView }
 }
 
-declare module './components/pt/PtHomeView' {
-  const PtHomeView: ComponentType<any>
-  export { PtHomeView }
-}
-
-declare module './components/pt/PtHomeView.jsx' {
-  const PtHomeView: ComponentType<any>
-  export { PtHomeView }
-}
-
-declare module './components/pt/PtTrainView' {
-  const PtTrainView: ComponentType<any>
-  export { PtTrainView }
-}
-
-declare module './components/pt/PtTrainView.jsx' {
-  const PtTrainView: ComponentType<any>
-  export { PtTrainView }
-}
-
 declare module './components/pt/MessagesView' {
   const MessagesView: ComponentType<any>
   export { MessagesView }
