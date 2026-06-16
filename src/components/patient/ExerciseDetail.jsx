@@ -24,6 +24,7 @@ export function ExerciseDetail({ exercise }) {
   const youtubeVideoId = getYouTubeVideoId(exercise);
   const youtubeEmbedUrl = youtubeVideoId ? `https://www.youtube-nocookie.com/embed/${youtubeVideoId}${isPlaying ? "?autoplay=1&rel=0" : ""}` : "";
   const youtubeWatchUrl = youtubeVideoId ? `https://www.youtube.com/watch?v=${youtubeVideoId}` : "";
+  const videoSearchUrl = exercise.videoSearchQuery ? `https://www.youtube.com/results?search_query=${encodeURIComponent(exercise.videoSearchQuery)}` : "";
   const videoStatus = youtubeVideoId ? "Video demo" : exercise.videoStatus || "Demo placeholder";
   const detailMeta = exercise.tag ? `${exercise.tag} · ${videoStatus}` : exercise.stages ? `${exercise.stages.join(" · ")}` : "Exercise details"
   const stats = [
@@ -52,6 +53,9 @@ export function ExerciseDetail({ exercise }) {
               <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Targets</div>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.4 }}>{exercise.muscles}</div>
             </div>
+          ) : null}
+          {exercise.description ? (
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.6 }}>{exercise.description}</div>
           ) : null}
         </div>
 
@@ -136,9 +140,31 @@ export function ExerciseDetail({ exercise }) {
             >
               ▶
             </div>
-            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              Add YouTube ID or URL in rehabMock.js
-            </div>
+            {videoSearchUrl ? (
+              <a
+                href={videoSearchUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  border: `1px solid ${C.lime}`,
+                  borderRadius: 999,
+                  padding: "9px 12px",
+                  background: C.limeDim,
+                  color: C.lime,
+                  fontFamily: "'Fira Code', monospace",
+                  fontSize: 10,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.08em",
+                  textDecoration: "none",
+                }}
+              >
+                Find technique demo on YouTube ↗
+              </a>
+            ) : (
+              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                Demo guidance unavailable
+              </div>
+            )}
           </div>
         </div>
       )}

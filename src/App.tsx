@@ -334,6 +334,9 @@ export default function RehabPro() {
               planCadence: Object.fromEntries(
                 Object.entries(patient.planCadence || {}).filter(([name]) => name !== exercise),
               ),
+              planDose: Object.fromEntries(
+                Object.entries(patient.planDose || {}).filter(([name]) => name !== exercise),
+              ),
             }
           : patient,
       ),
@@ -349,6 +352,25 @@ export default function RehabPro() {
               planCadence: {
                 ...(patient.planCadence || {}),
                 [exercise]: cadence,
+              },
+            }
+          : patient,
+      ),
+    )
+  }
+
+  const handleUpdateExerciseDose = (patientId: string, exercise: string, field: string, value: string) => {
+    setPtPatients((prev) =>
+      prev.map((patient) =>
+        patient.id === patientId
+          ? {
+              ...patient,
+              planDose: {
+                ...(patient.planDose || {}),
+                [exercise]: {
+                  ...((patient.planDose || {})[exercise] || {}),
+                  [field]: value,
+                },
               },
             }
           : patient,
@@ -732,6 +754,7 @@ export default function RehabPro() {
         onAssignExercise={handleAssignExercise}
         onUnassignExercise={handleUnassignExercise}
         onUpdateExerciseCadence={handleUpdateExerciseCadence}
+        onUpdateExerciseDose={handleUpdateExerciseDose}
         onMarkReportReviewed={handleMarkReportReviewed}
       />
     )

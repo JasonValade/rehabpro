@@ -1,4 +1,4 @@
-export const EXERCISE_LIBRARY = [
+const BASE_EXERCISE_LIBRARY = [
   // ACL / Meniscus - Prehab / Prevention
   {
     id: "e1",
@@ -932,3 +932,144 @@ export const EXERCISE_LIBRARY = [
     difficulty: 3,
   },
 ];
+
+const LIBRARY_DETAIL_OVERRIDES = {
+  "Quad Sets": {
+    description: "Low-load quad activation for restoring knee extension control early in ACL or meniscus rehab.",
+    instructions: "Lie with the leg straight and relaxed. Tighten the thigh, press the back of the knee toward the floor, and hold for 5 seconds before fully relaxing.",
+    progression: "Add longer holds first, then add a small towel under the ankle once full extension is comfortable. Do not progress if swelling or extension loss returns.",
+    clinicalNotes: "Use this to reinforce terminal extension and reduce quad inhibition. Watch for glute substitution or the foot turning out.",
+    reminder: "The kneecap should glide upward as the quad turns on.",
+  },
+  "Heel Slides": {
+    description: "Gentle knee flexion mobility work used to recover range without forcing the joint.",
+    instructions: "Slide the heel toward the glutes on a smooth surface, pause at a firm stretch, then slide back out under control.",
+    progression: "Increase range gradually as morning swelling stays calm. Add a strap assist only when the movement stays smooth.",
+    clinicalNotes: "Best used before strengthening when stiffness limits motion. Stop before pinching, catching, or sharp joint-line pain.",
+    reminder: "Chase smooth range, not maximum range.",
+  },
+  "Straight Leg Raise": {
+    description: "Open-chain quad control drill for checking knee lock and preventing quad lag.",
+    instructions: "Set the quad first, lock the knee, lift to about 45 degrees, pause, and lower slowly without letting the knee bend.",
+    progression: "Add reps before ankle weight. Progress only when every rep starts with full knee extension.",
+    clinicalNotes: "If the knee bends during the lift, reduce range or return to quad sets before trying again.",
+    reminder: "No quad lag. Reset every rep.",
+  },
+  "Terminal Knee Extension": {
+    description: "Band-resisted terminal extension exercise for quad activation and gait carryover.",
+    instructions: "Anchor the band behind the knee. Start with a soft bend, press the knee straight, squeeze the quad for one second, and return slowly.",
+    progression: "Move from light band control to stronger band tension, then blend into step-up or squat patterns once extension is clean.",
+    clinicalNotes: "Goal is clean terminal extension without hip hiking or trunk sway. Monitor next-day swelling after increasing band tension.",
+    reminder: "Discomfort is fine; sharp pain is the stop sign.",
+  },
+  "Wall Slides": {
+    description: "Supported knee flexion mobility drill for restoring bend with less guarding.",
+    instructions: "Lie on your back with the foot on the wall. Let the heel slide down until a firm stretch appears, pause, then assist the leg back up.",
+    progression: "Add small range increases only when swelling and pain stay stable. Avoid forcing end range late in the session.",
+    clinicalNotes: "Useful when floor heel slides are too guarded. Keep reps slow and avoid twisting through the hip.",
+    reminder: "Stop before sharp pain or pinching.",
+  },
+  "Lateral Band Walks": {
+    description: "Hip abductor strengthening drill for improving knee tracking during squats, steps, and landing tasks.",
+    instructions: "Place the band above the knees or ankles, sit into a small squat, and step sideways while keeping toes forward and pelvis level.",
+    progression: "Progress by moving the band lower, adding steps, or increasing resistance after knee position stays clean.",
+    clinicalNotes: "Use before single-leg work when valgus control is the target. Quality matters more than distance covered.",
+    reminder: "Keep the knee tracking over the second toe.",
+  },
+  "Glute Bridge": {
+    description: "Posterior-chain control exercise for glute, hamstring, and trunk coordination.",
+    instructions: "Lie on your back with knees bent. Drive through the heels, lift the hips, squeeze the glutes at the top, and lower with control.",
+    progression: "Add a longer top hold, band at the knees, marching, or single-leg bridge only when the pelvis stays level.",
+    clinicalNotes: "Watch for lumbar arching or hamstring cramping. Cue ribs down and even pressure through both heels.",
+    reminder: "Lift with the hips, not the low back.",
+  },
+  "Bilateral Calf Raises": {
+    description: "Foundational calf capacity exercise for Achilles, ankle, and lower-leg loading.",
+    instructions: "Stand tall with light support. Rise through the big toe side of the foot, pause at full height, and lower slowly.",
+    progression: "Progress from floor to step, then to single-leg loading once symptoms stay settled for two consecutive sessions.",
+    clinicalNotes: "Keep load symmetrical and avoid rolling to the outside of the foot. Morning tendon stiffness should guide volume.",
+    reminder: "Light muscle burn is okay. Joint pain is the stop sign.",
+  },
+};
+
+const DEFAULT_VIDEO_URLS = {
+  "Quad Sets": "https://www.youtube.com/watch?v=au62CidApd0",
+  "Heel Slides": "https://www.youtube.com/watch?v=A7fcobCVppc",
+  "Straight Leg Raise": "https://www.youtube.com/shorts/4h5wRszUH2I",
+  "Terminal Knee Extension": "https://www.youtube.com/shorts/CU7Fn11YMTw",
+  "Wall Slides": "https://www.youtube.com/shorts/zcQLlI056HI",
+  "Lateral Band Walks": "https://www.youtube.com/shorts/HW9xLHrLhxI",
+  "Glute Bridge": "https://www.youtube.com/watch?v=PhTDzR0TpZs",
+  "Ankle Pumps": "https://www.youtube.com/watch?v=n6HI30C00Bk",
+  "Bilateral Calf Raises": "https://www.youtube.com/watch?v=Km0QS46bTEA",
+};
+
+function getPrimaryInjury(exercise) {
+  return exercise.injuries?.[0] || "rehab";
+}
+
+function getStageLabel(exercise) {
+  return exercise.stages?.[0]?.toLowerCase() || "rehab";
+}
+
+function getPainRule(exercise) {
+  if (exercise.stages?.includes("Return to Sport")) {
+    return "Stop the set if landing, cutting, or speed changes become noisy, unstable, or painful.";
+  }
+
+  if (exercise.stages?.includes("Protection")) {
+    return "Keep symptoms quiet during the session and again the next morning before adding volume.";
+  }
+
+  if (exercise.injuries?.includes("Patellar Tendon") || exercise.injuries?.includes("Achilles")) {
+    return "Use pain-monitoring rules and keep next-morning tendon stiffness from increasing.";
+  }
+
+  return "Keep pain tolerable, movement controlled, and swelling unchanged after the session.";
+}
+
+function getDefaultReminder(exercise) {
+  if (exercise.difficulty >= 4) {
+    return "Only perform this when cleared for higher-speed or impact work.";
+  }
+
+  if (exercise.stages?.includes("Protection")) {
+    return "Stay gentle and prioritize symptom response.";
+  }
+
+  if (exercise.injuries?.includes("Patellar Tendon") || exercise.injuries?.includes("Achilles")) {
+    return "Tendon response tomorrow matters as much as pain today.";
+  }
+
+  return "Clean reps beat harder reps.";
+}
+
+function buildExerciseDetails(exercise) {
+  const override = LIBRARY_DETAIL_OVERRIDES[exercise.name] || {};
+  const videoUrl = DEFAULT_VIDEO_URLS[exercise.name] || exercise.youtubeUrl;
+  const videoSearchQuery = `${exercise.name} physical therapy exercise demo`;
+
+  return {
+    description:
+      override.description ||
+      `${exercise.name} supports ${getPrimaryInjury(exercise).toLowerCase()} ${getStageLabel(exercise)} work by targeting ${exercise.muscles?.toLowerCase() || "movement control"}.`,
+    instructions:
+      override.instructions ||
+      `${exercise.cue} Move through each rep with control, keep breathing steady, and stop before compensation changes the pattern.`,
+    progression:
+      override.progression ||
+      `Progress by improving range, tempo, reps, or resistance one variable at a time. ${getPainRule(exercise)}`,
+    clinicalNotes:
+      override.clinicalNotes ||
+      `Dose for quality first. Confirm the patient can maintain ${exercise.muscles?.toLowerCase() || "target-area"} control without shifting load away from the involved side.`,
+    reminder: override.reminder || getDefaultReminder(exercise),
+    videoSearchQuery,
+    videoStatus: videoUrl ? "Video demo" : "Demo search",
+    ...(videoUrl ? { youtubeUrl: videoUrl } : {}),
+  };
+}
+
+export const EXERCISE_LIBRARY = BASE_EXERCISE_LIBRARY.map((exercise) => ({
+  ...exercise,
+  ...buildExerciseDetails(exercise),
+}));

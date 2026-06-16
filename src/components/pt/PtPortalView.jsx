@@ -3,6 +3,7 @@ import { C } from "../../constants/colors";
 import { EXERCISE_LIBRARY } from "../../data/exerciseLibrary";
 import { MILESTONES } from "../../data/rehabMock";
 import { parseSymptomReportMessage } from "../../utils/reportChat";
+import { ExerciseDetail } from "../patient/ExerciseDetail";
 import { ProgressArc } from "../ui/ProgressArc";
 import { SymptomReportCard } from "../ui/SymptomReportCard";
 import { Tag } from "../ui/Tag";
@@ -13,6 +14,15 @@ function relativeTime(ts) {
   const hours = Math.round(minutes / 60);
   if (hours < 24) return `${hours}h ago`;
   return `${Math.round(hours / 24)}d ago`;
+}
+
+function formatClinicalDate(ts) {
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(ts));
 }
 
 function Panel({ children, style }) {
@@ -36,6 +46,16 @@ function Metric({ label, value, color = C.bone, tone = "default" }) {
     <div className={`pt-metric pt-metric-${tone}`}>
       <Label>{label}</Label>
       <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 34, color, lineHeight: 1, marginTop: 8 }}>{value}</div>
+    </div>
+  );
+}
+
+function HistoryStat({ label, value, detail, color = C.bone }) {
+  return (
+    <div className="pt-history-stat">
+      <Label>{label}</Label>
+      <div style={{ color }}>{value}</div>
+      {detail ? <span>{detail}</span> : null}
     </div>
   );
 }
@@ -132,30 +152,42 @@ function TimelineItem({ item, type, onMarkReviewed }) {
   const title = isReport ? item.exercise : "Session check-in";
   const isUnread = isReport && !item.ptRead;
   const accent = isUnread ? C.red : isReport ? C.blue : C.lime;
+  const max = isReport ? 5 : 10;
+  const painHigh = item.pain >= (isReport ? 5 : 7);
+  const swellingHigh = item.swelling >= (isReport ? 4 : 7);
+  const note = isReport ? item.note : item.concern;
+  const outcomeLabel = isReport ? item.location : `${item.confidence ?? "-"}/10 confidence`;
 
   return (
-    <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 8, padding: 14, display: "grid", gap: 10 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, color: C.bone, lineHeight: 1 }}>{title}</div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 5 }}>{relativeTime(item.ts)}</div>
+    <article className={`pt-timeline-item${isUnread ? " pt-timeline-item-unread" : ""}`} style={{ "--timeline-accent": accent }}>
+      <div className="pt-timeline-marker" aria-hidden="true" />
+      <div className="pt-timeline-body">
+        <div className="pt-timeline-head">
+          <div style={{ minWidth: 0 }}>
+            <div className="pt-timeline-title">{title}</div>
+            <div className="pt-timeline-meta">
+              <span>{formatClinicalDate(item.ts)}</span>
+              <span>{relativeTime(item.ts)}</span>
+            </div>
+          </div>
+          <Tag label={isUnread ? "New report" : isReport ? "Reviewed" : "Check-in"} color={accent} />
         </div>
-        <Tag label={isUnread ? "New report" : isReport ? "Reviewed" : "Check-in"} color={accent} />
-      </div>
-      <div className="pt-history-metrics">
-        <Metric label="Pain" value={`${item.pain}/${isReport ? 5 : 10}`} color={item.pain >= (isReport ? 5 : 7) ? C.red : C.bone} tone={item.pain >= (isReport ? 5 : 7) ? "danger" : "default"} />
-        <Metric label="Swelling" value={`${item.swelling}/${isReport ? 5 : 10}`} color={item.swelling >= (isReport ? 4 : 7) ? C.red : C.bone} tone={item.swelling >= (isReport ? 4 : 7) ? "danger" : "default"} />
-        <Metric label={isReport ? "Location" : "Confidence"} value={isReport ? item.location : `${item.confidence}/10`} color={C.bone} />
-      </div>
-      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.55 }}>
-        {isReport ? item.note : item.concern}
-      </div>
-      {isUnread && (
-        <button type="button" onClick={onMarkReviewed} style={{ justifySelf: "start", padding: "10px 12px", border: `1px solid ${C.rim}`, borderRadius: 7, background: C.panel, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+
+        <div className="pt-timeline-signals">
+          <HistoryStat label="Pain" value={`${item.pain ?? "-"}/${max}`} color={painHigh ? C.red : C.bone} detail={painHigh ? "Elevated" : "Reported"} />
+          <HistoryStat label="Swelling" value={`${item.swelling ?? "-"}/${max}`} color={swellingHigh ? C.red : C.bone} detail={swellingHigh ? "Elevated" : "Reported"} />
+          <HistoryStat label={isReport ? "Location" : "Confidence"} value={outcomeLabel} color={C.bone} detail={isReport ? "Symptom area" : "Self rating"} />
+        </div>
+
+        {note ? <p className="pt-timeline-note">{note}</p> : null}
+
+        {isUnread && (
+          <button type="button" onClick={onMarkReviewed} className="pt-timeline-action">
             Mark reviewed
-        </button>
-      )}
-    </div>
+          </button>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -476,6 +508,7 @@ function PatientWorkspace({
   onAssignExercise,
   onUnassignExercise,
   onUpdateExerciseCadence,
+  onUpdateExerciseDose,
   onMarkReportReviewed,
 }) {
   const [planSearch, setPlanSearch] = useState("");
@@ -570,6 +603,24 @@ function PatientWorkspace({
       : completionDelta <= -5
         ? { label: "Dropping", color: C.red }
         : { label: "Flat", color: C.blue };
+  const historyReportsCount = reports.length;
+  const historyCheckInsCount = checkIns.length;
+  const unreadHistoryCount = reports.filter((item) => !item.ptRead).length;
+  const normalizedHistoryPain = historyItems
+    .map((item) => normalizeToTen(item.pain, item.type === "report" ? 5 : 10))
+    .filter((value) => Number.isFinite(value));
+  const averageHistoryPain = normalizedHistoryPain.length
+    ? Math.round(normalizedHistoryPain.reduce((sum, value) => sum + value, 0) / normalizedHistoryPain.length)
+    : null;
+  const latestHistoryItem = historyItems[0];
+  const latestHistoryLabel = latestHistoryItem
+    ? latestHistoryItem.type === "report"
+      ? `${latestHistoryItem.exercise} report`
+      : "Session check-in"
+    : "No submissions";
+  const historyWindowLabel = historyItems.length
+    ? `${formatClinicalDate(historyItems.at(-1).ts)} to ${formatClinicalDate(historyItems[0].ts)}`
+    : "Awaiting first patient submission";
   const planLoads = patient.assignedExercises.reduce(
     (loads, exercise) => {
       const load = getPlanLoad(exercise);
@@ -613,6 +664,12 @@ function PatientWorkspace({
   })).map((exercise) => ({
     ...exercise,
     cadence: patient.planCadence?.[exercise.name] || getDefaultExerciseCadence(exercise.category),
+    dose: {
+      sets: patient.planDose?.[exercise.name]?.sets ?? (exercise.detail?.sets ? String(exercise.detail.sets) : ""),
+      reps: patient.planDose?.[exercise.name]?.reps ?? (exercise.detail?.reps ? String(exercise.detail.reps) : ""),
+      hold: patient.planDose?.[exercise.name]?.hold ?? "",
+      rest: patient.planDose?.[exercise.name]?.rest ?? "",
+    },
   }));
   const filteredAvailableExercises = availableExercises
     .map((exercise) => ({
@@ -845,17 +902,34 @@ function PatientWorkspace({
                 </div>
               </DetailBlock>
 
-              <DetailBlock label="Exercise load" accent={planStatus === "pass" ? C.lime : C.amber}>
-                <div style={{ display: "grid", gap: 12 }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, lineHeight: 1 }}>{planLoadLabel}</div>
-                    <Tag label={`${patient.assignedExercises.length} exercises`} color={planStatus === "pass" ? C.lime : C.amber} />
+              <DetailBlock label="Plan structure" accent={planDecision.color}>
+                <div className="pt-overview-plan-card">
+                  <div className="pt-overview-plan-head">
+                    <div>
+                      <div className="pt-overview-plan-title">{planDecision.label}</div>
+                      <div className="pt-overview-plan-detail">{todaysSessionIntent}</div>
+                    </div>
+                    <Tag label={`${todaysExercises.length} today`} color={todaysExercises.length ? C.lime : C.amber} />
                   </div>
-                  <div className="pt-load-grid">
-                    <TrendBadge label="Mobility" value={planLoads.mobility} color={C.blue} />
-                    <TrendBadge label="Activation" value={planLoads.activation} color={C.lime} />
-                    <TrendBadge label="Strength" value={planLoads.strength} color={C.amber} />
-                    <TrendBadge label="Control" value={planLoads.control} color={C.bone} />
+                  <div className="pt-overview-plan-metrics">
+                    <TrendBadge label="Today" value={todaysExercises.length} color={todaysExercises.length ? C.lime : C.amber} />
+                    <TrendBadge label="Blocks" value={weeklyPlanSections.filter((section) => section.exercises.length > 0).length} color={C.blue} />
+                    <TrendBadge label="Load" value={planLoadLabel} color={planStatus === "pass" ? C.lime : C.amber} />
+                  </div>
+                  <div className="pt-overview-plan-sections">
+                    {weeklyPlanSections.map((section) => (
+                      <button
+                        key={section.id}
+                        type="button"
+                        onClick={() => {
+                          setActivePlanSectionId(section.id);
+                          onTabChange("plan");
+                        }}
+                      >
+                        <span>{section.title}</span>
+                        <Tag label={`${section.exercises.length}`} color={section.exercises.length ? C.lime : C.muted} />
+                      </button>
+                    ))}
                   </div>
                   <ProgressCheckRow
                     label="Coverage"
@@ -872,21 +946,31 @@ function PatientWorkspace({
 
         {activeTab === "plan" && (
           <Panel style={{ minHeight: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 14 }}>
-              <div>
+            <div className="pt-plan-hero" style={{ "--plan-risk-color": planRiskColor }}>
+              <div className="pt-plan-hero-main">
                 <Label color={C.lime}>Exercise plan</Label>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, marginTop: 5 }}>Today&apos;s clinical plan</div>
+                <div className="pt-plan-hero-title">Today&apos;s clinical plan</div>
+                <p>{todaysSessionIntent}</p>
+                <div className="pt-plan-hero-rail" aria-label={`Plan readiness ${readinessScore}% and coverage ${planScore}%`}>
+                  <span style={{ "--rail-color": readinessColor, "--rail-value": `${readinessScore}%` }}>
+                    <b>Readiness</b>
+                  </span>
+                  <span style={{ "--rail-color": planStatus === "pass" ? C.lime : C.amber, "--rail-value": `${planScore}%` }}>
+                    <b>Coverage</b>
+                  </span>
+                </div>
               </div>
-              <Tag label={planRiskLabel} color={planRiskColor} />
-            </div>
-
-            <div className="pt-plan-summary">
-              <TrendBadge label="Focus" value={planPrimaryFocus} color={C.bone} />
-              <TrendBadge label="Readiness" value={`${readinessScore}%`} color={readinessColor} />
-              <TrendBadge label="Plan load" value={planLoadLabel} color={planStatus === "pass" ? C.lime : C.amber} />
-              <div className="pt-plan-next">
-                <Label>Next action</Label>
-                <div>{planNextAction}</div>
+              <div className="pt-plan-hero-side">
+                <Tag label={planRiskLabel} color={planRiskColor} />
+                <div className="pt-plan-summary">
+                  <TrendBadge label="Focus" value={planPrimaryFocus} color={C.bone} />
+                  <TrendBadge label="Readiness" value={`${readinessScore}%`} color={readinessColor} />
+                  <TrendBadge label="Plan load" value={planLoadLabel} color={planStatus === "pass" ? C.lime : C.amber} />
+                </div>
+                <div className="pt-plan-next">
+                  <Label>Next action</Label>
+                  <div>{planNextAction}</div>
+                </div>
               </div>
             </div>
 
@@ -942,7 +1026,7 @@ function PatientWorkspace({
                       <div className="pt-today-index">{index + 1}</div>
                       <div className="pt-today-main">
                         <div className="pt-today-exercise">{exercise.name}</div>
-                        <div className="pt-today-dose">{exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}</div>
+                        <div className="pt-today-dose">{exercise.dose.sets || "-"} sets / {exercise.dose.reps || "-"} reps{exercise.dose.hold ? ` / hold ${exercise.dose.hold}` : ""}{exercise.dose.rest ? ` / rest ${exercise.dose.rest}` : ""}</div>
                         <div className="pt-today-rationale">{getExercisePurpose(exercise)}</div>
                       </div>
                       <div className="pt-today-tags">
@@ -970,6 +1054,7 @@ function PatientWorkspace({
                     key={section.id}
                     type="button"
                     className={`pt-weekly-section${activePlanSection.id === section.id ? " pt-weekly-section-active" : ""}`}
+                    style={{ "--section-color": section.exercises.length ? getCategoryColor(section.exercises[0].category) : C.muted }}
                     onClick={() => setActivePlanSectionId(section.id)}
                     aria-pressed={activePlanSection.id === section.id}
                   >
@@ -1011,17 +1096,12 @@ function PatientWorkspace({
                 </div>
                 {activePlanSection.exercises.length > 0 ? (
                   activePlanSection.exercises.map((exercise, index) => {
-                    const isExpanded = expandedPlanExercise === exercise.name;
+                    const showingDetails = expandedPlanExercise === `${exercise.name}:details`;
                     const categoryColor = getCategoryColor(exercise.category);
                     return (
-                      <div key={exercise.name} className={`pt-assigned-exercise${isExpanded ? " pt-assigned-exercise-open" : ""}`}>
+                      <div key={exercise.name} className={`pt-assigned-exercise${showingDetails ? " pt-assigned-exercise-open" : ""}`}>
                         <div className="pt-assigned-row">
-                          <button
-                            type="button"
-                            className="pt-assigned-toggle"
-                            aria-expanded={isExpanded}
-                            onClick={() => setExpandedPlanExercise(isExpanded ? "" : exercise.name)}
-                          >
+                          <div className="pt-assigned-toggle">
                             <div className="pt-assigned-row-main">
                               <div className="pt-exercise-index" style={{ "--exercise-color": categoryColor }}>
                                 {index + 1}
@@ -1029,11 +1109,11 @@ function PatientWorkspace({
                               <div>
                                 <div className="pt-exercise-title">{exercise.name}</div>
                                 <div className="pt-exercise-dose">
-                                  {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}
+                                  {exercise.dose.sets || "-"} sets / {exercise.dose.reps || "-"} reps{exercise.dose.hold ? ` / hold ${exercise.dose.hold}` : ""}{exercise.dose.rest ? ` / rest ${exercise.dose.rest}` : ""}
                                 </div>
                               </div>
                             </div>
-                          </button>
+                          </div>
                           <div className="pt-assigned-row-meta">
                             <label>
                               <span>Cadence</span>
@@ -1053,20 +1133,39 @@ function PatientWorkspace({
                           </div>
                         </div>
                         <div className="pt-assigned-purpose">{getExercisePurpose(exercise)}</div>
-                        {isExpanded ? (
-                          <div className="pt-assigned-details">
-                            <div className="pt-exercise-meta">
-                              <span>{exercise.detail?.equipment || "No equipment listed"}</span>
-                              <span>{exercise.detail?.muscles || "General rehab"}</span>
-                            </div>
-                            <div className="pt-exercise-cue">
-                              {exercise.detail?.cue || "Use clinician guidance for tempo, range, and symptom limits."}
-                            </div>
+                        <div className="pt-assigned-details">
+                          <div className="pt-dose-editor" aria-label={`${exercise.name} prescription`}>
+                            {[
+                              ["sets", "Sets"],
+                              ["reps", "Reps"],
+                              ["hold", "Hold"],
+                              ["rest", "Rest"],
+                            ].map(([field, label]) => (
+                              <label key={field}>
+                                <span>{label}</span>
+                                <input
+                                  value={exercise.dose[field] || ""}
+                                  onChange={(event) => onUpdateExerciseDose(patient.id, exercise.name, field, event.target.value)}
+                                  placeholder={field === "hold" || field === "rest" ? "Optional" : "-"}
+                                  aria-label={`${exercise.name} ${label.toLowerCase()}`}
+                                />
+                              </label>
+                            ))}
+                          </div>
+                          <div className="pt-exercise-actions">
+                            <button type="button" className="pt-details-toggle" onClick={() => setExpandedPlanExercise(showingDetails ? "" : `${exercise.name}:details`)}>
+                              {showingDetails ? "Hide details" : "Details + video"}
+                            </button>
                             <button type="button" onClick={() => onUnassignExercise(patient.id, exercise.name)} className="pt-plan-remove">
                               Remove from plan
                             </button>
                           </div>
-                        ) : null}
+                          {showingDetails ? (
+                            <div className="pt-exercise-detail-panel">
+                              <ExerciseDetail exercise={{ ...(exercise.detail || {}), name: exercise.name, sets: exercise.dose.sets, reps: exercise.dose.reps, rest: exercise.dose.rest }} />
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
                     );
                   })
@@ -1133,26 +1232,55 @@ function PatientWorkspace({
 
         {activeTab === "history" && (
           <Panel style={{ minHeight: "100%" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 14 }}>
+            <div className="pt-history-hero">
               <div>
-                <Label color={C.lime}>History</Label>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, marginTop: 5 }}>Reports & check-ins</div>
+                <div className="pt-history-hero-head">
+                  <div>
+                    <Label color={C.lime}>History</Label>
+                    <div>Reports & check-ins</div>
+                  </div>
+                  <Tag label={`${historyItems.length} records`} color={historyItems.length ? C.blue : C.muted} />
+                </div>
+                <p>{historyWindowLabel}</p>
               </div>
-              <Tag label={`${historyItems.length} records`} color={C.blue} />
+              <div className="pt-history-summary">
+                <HistoryStat label="Reports" value={historyReportsCount} detail={unreadHistoryCount ? `${unreadHistoryCount} unread` : "All reviewed"} color={unreadHistoryCount ? C.red : C.lime} />
+                <HistoryStat label="Check-ins" value={historyCheckInsCount} detail={latestCheckIn === "None" ? "No recent check-in" : `Latest ${latestCheckIn}`} color={C.blue} />
+                <HistoryStat label="Pain avg" value={averageHistoryPain === null ? "-" : `${averageHistoryPain}/10`} detail="Normalized scale" color={averageHistoryPain === null ? C.muted : averageHistoryPain >= 7 ? C.red : averageHistoryPain >= 4 ? C.amber : C.lime} />
+                <HistoryStat label="Completion" value={completionValues.length ? `${consistencyScore}%` : "-"} detail={completionTrend.label} color={completionTrend.color} />
+              </div>
             </div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {historyItems.length > 0 ? (
-                historyItems.map((item) => (
-                  <TimelineItem
-                    key={`${item.type}-${item.id}`}
-                    item={item}
-                    type={item.type === "report" ? "report" : "check-in"}
-                    onMarkReviewed={() => onMarkReportReviewed(item.id)}
-                  />
-                ))
-              ) : (
-                <EmptyState title="No history yet" message="Reports and check-ins will appear here as the patient submits them." />
-              )}
+
+            {latestHistoryItem ? (
+              <div className="pt-history-latest">
+                <div>
+                  <Label>Latest signal</Label>
+                  <div>{latestHistoryLabel}</div>
+                  <p>{latestHistoryItem.type === "report" ? latestHistoryItem.note : latestHistoryItem.concern}</p>
+                </div>
+                <Tag label={latestHistoryItem.type === "report" && !latestHistoryItem.ptRead ? "Needs review" : trendHeadline} color={latestHistoryItem.type === "report" && !latestHistoryItem.ptRead ? C.red : trendAccent} />
+              </div>
+            ) : null}
+
+            <div className="pt-history-timeline">
+              <div className="pt-history-timeline-head">
+                <Label>Timeline</Label>
+                {historyItems.length ? <span>{historyItems.length} total submissions</span> : null}
+              </div>
+              <div className="pt-history-list">
+                {historyItems.length > 0 ? (
+                  historyItems.map((item) => (
+                    <TimelineItem
+                      key={`${item.type}-${item.id}`}
+                      item={item}
+                      type={item.type === "report" ? "report" : "check-in"}
+                      onMarkReviewed={() => onMarkReportReviewed(item.id)}
+                    />
+                  ))
+                ) : (
+                  <EmptyState title="No history yet" message="Reports and check-ins will appear here as the patient submits them." />
+                )}
+              </div>
             </div>
           </Panel>
         )}
@@ -1239,6 +1367,7 @@ export function PtPortalView({
   onAssignExercise,
   onUnassignExercise,
   onUpdateExerciseCadence,
+  onUpdateExerciseDose,
   onMarkReportReviewed,
 }) {
   const [activePatientTab, setActivePatientTab] = useState("overview");
@@ -1451,6 +1580,200 @@ export function PtPortalView({
           grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 8px;
         }
+        .pt-history-hero {
+          border: 1px solid ${C.rimHi};
+          background: linear-gradient(135deg, ${C.lift}, ${C.deep});
+          border-radius: 8px;
+          padding: 16px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+          gap: 16px;
+          margin-bottom: 12px;
+        }
+        .pt-history-hero-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: start;
+        }
+        .pt-history-hero-head > div:first-child > div:last-child {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 32px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-history-hero p,
+        .pt-history-latest p {
+          margin: 8px 0 0;
+          color: ${C.muted};
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .pt-history-summary {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .pt-history-stat {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 7px;
+          padding: 11px 12px;
+          min-width: 0;
+        }
+        .pt-history-stat > div:nth-child(2) {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 28px;
+          line-height: 1;
+          margin-top: 7px;
+          overflow-wrap: anywhere;
+        }
+        .pt-history-stat span {
+          display: block;
+          color: ${C.muted};
+          font-size: 11px;
+          line-height: 1.35;
+          margin-top: 5px;
+        }
+        .pt-history-latest {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 13px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 14px;
+          align-items: start;
+          margin-bottom: 12px;
+        }
+        .pt-history-latest > div:first-child > div:nth-child(2) {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 24px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-history-timeline {
+          display: grid;
+          gap: 10px;
+        }
+        .pt-history-timeline-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+        }
+        .pt-history-timeline-head span {
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .pt-history-list {
+          display: grid;
+          gap: 10px;
+        }
+        .pt-timeline-item {
+          display: grid;
+          grid-template-columns: 18px minmax(0, 1fr);
+          gap: 10px;
+          position: relative;
+        }
+        .pt-timeline-item::before {
+          content: "";
+          position: absolute;
+          left: 8px;
+          top: 24px;
+          bottom: -10px;
+          width: 1px;
+          background: ${C.rim};
+        }
+        .pt-timeline-item:last-child::before {
+          display: none;
+        }
+        .pt-timeline-marker {
+          width: 17px;
+          height: 17px;
+          border: 1px solid var(--timeline-accent);
+          background: ${C.deep};
+          border-radius: 50%;
+          margin-top: 16px;
+          box-shadow: 0 0 0 4px ${C.black};
+          position: relative;
+          z-index: 1;
+        }
+        .pt-timeline-body {
+          border: 1px solid ${C.rim};
+          border-left: 3px solid var(--timeline-accent);
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 13px;
+          display: grid;
+          gap: 11px;
+          min-width: 0;
+        }
+        .pt-timeline-item-unread .pt-timeline-body {
+          background: linear-gradient(135deg, ${C.redDim}, ${C.deep} 62%);
+          border-color: ${C.red}55;
+        }
+        .pt-timeline-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: start;
+        }
+        .pt-timeline-title {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 22px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-timeline-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 0;
+          margin-top: 6px;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+        }
+        .pt-timeline-meta span + span::before {
+          content: '/';
+          color: ${C.ghost};
+          margin: 0 8px;
+        }
+        .pt-timeline-signals {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .pt-timeline-note {
+          margin: 0;
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.55;
+        }
+        .pt-timeline-action {
+          justify-self: start;
+          padding: 10px 12px;
+          border: 1px solid ${C.rim};
+          border-radius: 7px;
+          background: ${C.panel};
+          color: ${C.bone};
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-timeline-action:hover,
+        .pt-timeline-action:focus-visible {
+          border-color: ${C.lime}66;
+          background: ${C.limeDim};
+        }
         .pt-selected-metrics {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1564,22 +1887,104 @@ export function PtPortalView({
           gap: 12px;
           margin-top: 16px;
         }
+        .pt-plan-hero {
+          border: 1px solid ${C.rimHi};
+          background:
+            linear-gradient(135deg, ${C.lift}, ${C.deep} 58%),
+            linear-gradient(90deg, color-mix(in srgb, var(--plan-risk-color) 18%, transparent), transparent);
+          border-radius: 8px;
+          padding: 16px;
+          display: grid;
+          grid-template-columns: minmax(0, 1.15fr) minmax(310px, 0.85fr);
+          gap: 16px;
+          align-items: stretch;
+          margin-bottom: 14px;
+          position: relative;
+          overflow: hidden;
+        }
+        .pt-plan-hero::before {
+          content: "";
+          position: absolute;
+          inset: 0 0 auto;
+          height: 3px;
+          background: linear-gradient(90deg, ${C.lime}, ${C.blue}, var(--plan-risk-color));
+          opacity: 0.95;
+        }
+        .pt-plan-hero-main,
+        .pt-plan-hero-side {
+          position: relative;
+          min-width: 0;
+        }
+        .pt-plan-hero-title {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 38px;
+          color: ${C.bone};
+          line-height: 0.95;
+          margin-top: 7px;
+        }
+        .pt-plan-hero-main p {
+          margin: 9px 0 0;
+          color: ${C.bone};
+          font-size: 14px;
+          line-height: 1.55;
+          max-width: 680px;
+        }
+        .pt-plan-hero-side {
+          display: grid;
+          gap: 10px;
+          align-content: start;
+          justify-items: end;
+        }
+        .pt-plan-hero-rail {
+          display: grid;
+          gap: 9px;
+          margin-top: 18px;
+        }
+        .pt-plan-hero-rail span {
+          height: 32px;
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 7px;
+          overflow: hidden;
+          position: relative;
+          display: flex;
+          align-items: center;
+          padding: 0 10px;
+          min-width: 0;
+        }
+        .pt-plan-hero-rail span::before {
+          content: "";
+          position: absolute;
+          inset: 0 auto 0 0;
+          width: var(--rail-value);
+          background: color-mix(in srgb, var(--rail-color) 24%, transparent);
+          border-right: 1px solid color-mix(in srgb, var(--rail-color) 70%, transparent);
+        }
+        .pt-plan-hero-rail b {
+          position: relative;
+          color: ${C.bone};
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
         .pt-plan-summary {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
-          margin-bottom: 12px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+          width: 100%;
         }
         .pt-plan-decision {
           border: 1px solid var(--decision-color);
-          background: ${C.deep};
+          background: linear-gradient(135deg, color-mix(in srgb, var(--decision-color) 12%, ${C.deep}), ${C.deep});
           border-radius: 8px;
-          padding: 13px;
+          padding: 15px;
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           gap: 16px;
           align-items: center;
-          margin-bottom: 12px;
+          margin-bottom: 14px;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
         }
         .pt-plan-decision > div:first-child > div {
           font-family: 'Bebas Neue', cursive;
@@ -1602,7 +2007,7 @@ export function PtPortalView({
         .pt-plan-decision-steps span {
           border: 1px solid ${C.rim};
           background: ${C.panel};
-          border-radius: 999px;
+          border-radius: 7px;
           padding: 7px 9px;
           color: ${C.muted};
           font-family: 'Fira Code', monospace;
@@ -1616,12 +2021,70 @@ export function PtPortalView({
           background: color-mix(in srgb, var(--decision-color) 16%, transparent);
           color: var(--decision-color);
         }
+        .pt-overview-plan-card {
+          display: grid;
+          gap: 12px;
+        }
+        .pt-overview-plan-head {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: start;
+        }
+        .pt-overview-plan-title {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 30px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-overview-plan-detail {
+          margin-top: 7px;
+          color: ${C.muted};
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .pt-overview-plan-metrics {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .pt-overview-plan-sections {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 7px;
+        }
+        .pt-overview-plan-sections button {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 7px;
+          padding: 9px 10px;
+          color: ${C.bone};
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          align-items: center;
+          text-align: left;
+        }
+        .pt-overview-plan-sections button:hover,
+        .pt-overview-plan-sections button:focus-visible {
+          border-color: ${C.lime}66;
+          background: ${C.limeDim};
+        }
+        .pt-overview-plan-sections button > span {
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: ${C.muted};
+          line-height: 1.3;
+        }
         .pt-plan-next {
           border: 1px solid ${C.rim};
-          background: ${C.deep};
+          background: ${C.panel};
           border-radius: 7px;
           padding: 11px 12px;
           min-width: 0;
+          width: 100%;
         }
         .pt-plan-next div {
           color: ${C.bone};
@@ -1665,12 +2128,12 @@ export function PtPortalView({
         }
         .pt-today-plan {
           display: grid;
-          gap: 12px;
-          margin-bottom: 16px;
-          border: 1px solid ${C.rim};
-          background: ${C.deep};
+          gap: 14px;
+          margin-bottom: 18px;
+          border: 1px solid ${C.rimHi};
+          background: linear-gradient(180deg, ${C.deep}, ${C.black});
           border-radius: 8px;
-          padding: 12px;
+          padding: 14px;
         }
         .pt-today-header {
           display: grid;
@@ -1700,29 +2163,31 @@ export function PtPortalView({
         }
         .pt-today-list {
           display: grid;
-          gap: 7px;
+          gap: 8px;
         }
         .pt-today-list button {
           width: 100%;
-          border: 1px solid ${C.rim};
-          background: ${C.panel};
+          border: 1px solid ${C.rimHi};
+          background: linear-gradient(90deg, ${C.panel}, ${C.deep});
           border-radius: 8px;
-          padding: 10px;
+          padding: 12px;
           display: grid;
           grid-template-columns: auto minmax(0, 1fr) auto;
-          gap: 10px;
+          gap: 12px;
           align-items: center;
           color: ${C.bone};
           text-align: left;
+          transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
         }
         .pt-today-list button:hover,
         .pt-today-list button:focus-visible {
           border-color: ${C.lime}66;
           background: ${C.limeDim};
+          transform: translateY(-1px);
         }
         .pt-today-index {
-          width: 30px;
-          height: 30px;
+          width: 34px;
+          height: 34px;
           border: 1px solid ${C.lime}55;
           background: ${C.limeDim};
           border-radius: 7px;
@@ -1766,11 +2231,12 @@ export function PtPortalView({
         .pt-weekly-grid {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 10px;
+          gap: 12px;
         }
         .pt-weekly-section {
-          border: 1px solid ${C.rim};
-          background: ${C.deep};
+          border: 1px solid ${C.rimHi};
+          border-top: 2px solid var(--section-color);
+          background: linear-gradient(180deg, ${C.deep}, ${C.panel});
           border-radius: 8px;
           padding: 12px;
           display: grid;
@@ -1778,14 +2244,17 @@ export function PtPortalView({
           min-width: 0;
           color: ${C.bone};
           text-align: left;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.035);
+          transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
         }
         .pt-weekly-section:hover,
         .pt-weekly-section:focus-visible {
           border-color: ${C.lime}66;
+          transform: translateY(-1px);
         }
         .pt-weekly-section-active {
           border-color: ${C.lime};
-          background: ${C.limeDim};
+          background: linear-gradient(180deg, ${C.limeDim}, ${C.deep});
         }
         .pt-weekly-section-head {
           display: grid;
@@ -1821,9 +2290,9 @@ export function PtPortalView({
           font-size: 8px;
         }
         .pt-weekly-days span.active {
-          border-color: ${C.lime}66;
-          background: ${C.limeDim};
-          color: ${C.lime};
+          border-color: var(--section-color);
+          background: color-mix(in srgb, var(--section-color) 15%, transparent);
+          color: var(--section-color);
         }
         .pt-weekly-exercises {
           display: flex;
@@ -1833,7 +2302,7 @@ export function PtPortalView({
         .pt-weekly-exercises span {
           border: 1px solid ${C.rim};
           background: ${C.panel};
-          border-radius: 999px;
+          border-radius: 6px;
           padding: 5px 7px;
           color: ${C.bone};
           font-size: 10px;
@@ -1841,13 +2310,13 @@ export function PtPortalView({
         }
         .pt-plan-column {
           display: grid;
-          gap: 10px;
+          gap: 11px;
           align-content: start;
           min-width: 0;
         }
         .pt-plan-column-header {
-          border: 1px solid ${C.rim};
-          background: ${C.deep};
+          border: 1px solid ${C.rimHi};
+          background: ${C.lift};
           border-radius: 7px;
           padding: 12px;
           display: flex;
@@ -1864,7 +2333,7 @@ export function PtPortalView({
         }
         .pt-assigned-exercise,
         .pt-add-exercise {
-          border: 1px solid ${C.rim};
+          border: 1px solid ${C.rimHi};
           background: ${C.deep};
           border-radius: 8px;
           padding: 13px;
@@ -1877,6 +2346,7 @@ export function PtPortalView({
         .pt-assigned-exercise {
           padding: 0;
           overflow: hidden;
+          background: linear-gradient(180deg, ${C.deep}, ${C.panel});
         }
         .pt-assigned-exercise-open {
           border-color: ${C.lime}44;
@@ -1950,10 +2420,11 @@ export function PtPortalView({
         }
         .pt-assigned-purpose {
           border-top: 1px solid ${C.rim};
-          padding: 8px 12px;
-          color: ${C.muted};
+          padding: 10px 12px;
+          color: ${C.bone};
           font-size: 12px;
-          line-height: 1.35;
+          line-height: 1.45;
+          background: rgba(255,255,255,0.015);
         }
         .pt-assigned-details {
           border-top: 1px solid ${C.rim};
@@ -1961,13 +2432,70 @@ export function PtPortalView({
           display: grid;
           gap: 10px;
         }
+        .pt-dose-editor {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 8px;
+        }
+        .pt-dose-editor label {
+          display: grid;
+          gap: 5px;
+          min-width: 0;
+        }
+        .pt-dose-editor span {
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 8px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-dose-editor input {
+          width: 100%;
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          color: ${C.bone};
+          border-radius: 7px;
+          padding: 9px 10px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px;
+        }
+        .pt-dose-editor input::placeholder {
+          color: ${C.muted};
+        }
+        .pt-details-toggle {
+          border: 1px solid ${C.blue}55;
+          background: ${C.blueDim};
+          color: ${C.blue};
+          border-radius: 7px;
+          padding: 9px 11px;
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-exercise-actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+        }
+        .pt-exercise-detail-panel {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 8px;
+          padding: 12px;
+          overflow: hidden;
+        }
         .pt-add-exercise {
-          border-color: ${C.limeMid};
-          background: ${C.limeDim};
+          border-color: ${C.rimHi};
+          background: linear-gradient(180deg, ${C.deep}, ${C.panel});
+          transition: border-color 160ms ease, transform 160ms ease, background 160ms ease;
         }
         .pt-add-exercise:hover,
         .pt-add-exercise:focus-visible {
           border-color: ${C.lime};
+          background: ${C.limeDim};
+          transform: translateY(-1px);
         }
         .pt-exercise-main {
           display: flex;
@@ -2129,12 +2657,20 @@ export function PtPortalView({
           .pt-progress-score-row,
           .pt-trend-grid,
           .pt-history-metrics,
+          .pt-history-hero,
+          .pt-history-summary,
+          .pt-history-latest,
+          .pt-timeline-signals,
           .pt-note-grid,
           .pt-plan-grid,
+          .pt-plan-hero,
           .pt-plan-decision,
           .pt-weekly-grid,
           .pt-plan-summary {
             grid-template-columns: 1fr;
+          }
+          .pt-plan-hero-side {
+            justify-items: stretch;
           }
           .pt-plan-decision-steps {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2152,11 +2688,21 @@ export function PtPortalView({
           .pt-today-tags {
             justify-content: flex-start;
           }
+          .pt-overview-plan-head {
+            flex-direction: column;
+          }
+          .pt-overview-plan-metrics,
+          .pt-overview-plan-sections {
+            grid-template-columns: 1fr;
+          }
           .pt-assigned-row {
             grid-template-columns: 1fr;
           }
           .pt-assigned-row-meta {
             justify-content: flex-start;
+          }
+          .pt-dose-editor {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
           .pt-plan-alert {
             grid-template-columns: 1fr;
@@ -2252,6 +2798,7 @@ export function PtPortalView({
                 onAssignExercise={onAssignExercise}
                 onUnassignExercise={onUnassignExercise}
                 onUpdateExerciseCadence={onUpdateExerciseCadence}
+                onUpdateExerciseDose={onUpdateExerciseDose}
                 onMarkReportReviewed={onMarkReportReviewed}
               />
             )}
