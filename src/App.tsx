@@ -29,7 +29,7 @@ const TABS = [
   { id: 'home', icon: '⬡', label: 'HOME' },
   { id: 'train', icon: '◈', label: 'TRAIN' },
   { id: 'progress', icon: '◎', label: 'PROGRESS' },
-  { id: 'pt', icon: '⊕', label: 'PT' },
+  { id: 'pt', icon: '⊕', label: 'MSG' },
   { id: 'report', icon: '◇', label: 'REPORT' },
 ]
 
@@ -305,11 +305,20 @@ export default function RehabPro() {
     setActiveThreadId('')
   }
 
-  const handleAssignExercise = (patientId: string, exercise: string) => {
+  const handleAssignExercise = (patientId: string, exercise: string, cadence?: string) => {
     setPtPatients((prev) =>
       prev.map((patient) =>
         patient.id === patientId && !patient.assignedExercises.includes(exercise)
-          ? { ...patient, assignedExercises: [...patient.assignedExercises, exercise] }
+          ? {
+              ...patient,
+              assignedExercises: [...patient.assignedExercises, exercise],
+              planCadence: cadence
+                ? {
+                    ...(patient.planCadence || {}),
+                    [exercise]: cadence,
+                  }
+                : patient.planCadence,
+            }
           : patient,
       ),
     )
@@ -319,7 +328,29 @@ export default function RehabPro() {
     setPtPatients((prev) =>
       prev.map((patient) =>
         patient.id === patientId
-          ? { ...patient, assignedExercises: patient.assignedExercises.filter((item: string) => item !== exercise) }
+          ? {
+              ...patient,
+              assignedExercises: patient.assignedExercises.filter((item: string) => item !== exercise),
+              planCadence: Object.fromEntries(
+                Object.entries(patient.planCadence || {}).filter(([name]) => name !== exercise),
+              ),
+            }
+          : patient,
+      ),
+    )
+  }
+
+  const handleUpdateExerciseCadence = (patientId: string, exercise: string, cadence: string) => {
+    setPtPatients((prev) =>
+      prev.map((patient) =>
+        patient.id === patientId
+          ? {
+              ...patient,
+              planCadence: {
+                ...(patient.planCadence || {}),
+                [exercise]: cadence,
+              },
+            }
           : patient,
       ),
     )
@@ -700,6 +731,7 @@ export default function RehabPro() {
         onSendMessage={handleSendPtMessage}
         onAssignExercise={handleAssignExercise}
         onUnassignExercise={handleUnassignExercise}
+        onUpdateExerciseCadence={handleUpdateExerciseCadence}
         onMarkReportReviewed={handleMarkReportReviewed}
       />
     )

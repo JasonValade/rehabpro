@@ -4,6 +4,7 @@ import { EXERCISE_LIBRARY } from "../../data/exerciseLibrary";
 import { MILESTONES } from "../../data/rehabMock";
 import { parseSymptomReportMessage } from "../../utils/reportChat";
 import { ProgressArc } from "../ui/ProgressArc";
+import { SymptomReportCard } from "../ui/SymptomReportCard";
 import { Tag } from "../ui/Tag";
 
 function relativeTime(ts) {
@@ -158,51 +159,6 @@ function TimelineItem({ item, type, onMarkReviewed }) {
   );
 }
 
-function SymptomReportCard({ report, sourceReport, onMarkReviewed }) {
-  const isReviewed = sourceReport?.ptRead;
-  const accent = isReviewed ? C.lime : C.red;
-
-  return (
-    <div style={{ border: `1px solid ${accent}55`, background: isReviewed ? C.limeDim : C.redDim, borderRadius: 8, padding: 12, display: "grid", gap: 10, minWidth: 260 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
-        <div style={{ minWidth: 0 }}>
-          <Label color={accent}>Symptom report</Label>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 23, color: C.bone, lineHeight: 1, marginTop: 6 }}>{report.exercise || "General"}</div>
-        </div>
-        <Tag label={isReviewed ? "Reviewed" : "Needs review"} color={accent} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
-        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px" }}>
-          <Label>Pain</Label>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.pain || "0/5"}</div>
-        </div>
-        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px" }}>
-          <Label>Swelling</Label>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.swelling || "0/5"}</div>
-        </div>
-        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px", minWidth: 0 }}>
-          <Label>Location</Label>
-          <div style={{ fontSize: 12, color: C.bone, lineHeight: 1.35, marginTop: 6, overflowWrap: "anywhere" }}>{report.location || "Not specified"}</div>
-        </div>
-      </div>
-      {report.note ? (
-        <div style={{ borderTop: `1px solid ${accent}30`, paddingTop: 9, color: C.bone, fontSize: 13, lineHeight: 1.5 }}>
-          {report.note}
-        </div>
-      ) : null}
-      {!isReviewed && sourceReport ? (
-        <button
-          type="button"
-          onClick={onMarkReviewed}
-          style={{ justifySelf: "start", padding: "10px 12px", border: `1px solid ${C.red}55`, borderRadius: 7, background: C.panel, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}
-        >
-          Mark as read
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
 function ProgressCheckRow({ label, value, detail, status = "watch" }) {
   const passed = status === "pass";
   const color = passed ? C.lime : C.amber;
@@ -235,6 +191,8 @@ const PLAN_CATEGORIES = [
   { id: "control", label: "Control", color: C.bone },
 ];
 
+const CADENCE_OPTIONS = ["Daily", "3x / week", "2x / week", "As tolerated", "Hold"];
+
 const EXERCISE_ALIASES = {
   bridges: "glute bridge",
   slr: "straight leg raise",
@@ -252,6 +210,31 @@ function getPlanLoad(exercise) {
   if (name.includes("squat") || name.includes("step") || name.includes("calf") || name.includes("lunge") || name.includes("press")) return "strength";
   if (name.includes("balance") || name.includes("hop") || name.includes("landing") || name.includes("shuffle") || name.includes("walk")) return "control";
   return "general";
+}
+
+function getCategoryColor(categoryId) {
+  return PLAN_CATEGORIES.find((category) => category.id === categoryId)?.color || C.muted;
+}
+
+function getDefaultExerciseCadence(categoryId) {
+  const cadence = {
+    mobility: "Daily",
+    activation: "Daily",
+    strength: "3x / week",
+    control: "3x / week",
+    general: "As tolerated",
+  };
+
+  return cadence[categoryId] || "As tolerated";
+}
+
+function getExercisePurpose(exercise) {
+  const category = exercise.category;
+  if (category === "mobility") return "Restore range";
+  if (category === "activation") return "Wake up support muscles";
+  if (category === "strength") return "Build load tolerance";
+  if (category === "control") return "Improve movement quality";
+  return exercise.detail?.muscles || "General rehab";
 }
 
 const SIDEBAR_SECTIONS = [
@@ -385,7 +368,7 @@ function PortalSection({
         <SectionHeader
           eyebrow="Inbox"
           title="Messages"
-          detail="Open a conversation from the queue to reply inside the patient workspace."
+          detail="Open patient conversations for questions, plan updates, symptom reports, and follow-up."
           tag={<Tag label={`${threads.length} threads`} color={C.blue} />}
         />
         <Panel>
@@ -400,19 +383,11 @@ function PortalSection({
                 <WorkQueueCard
                   key={thread.id}
                   title={thread.patientName}
-                  meta={showReportPreview ? `${latestReport.exercise} / ${relativeTime(latestReport.ts)}` : thread.updated}
+                  meta={showReportPreview ? `Latest report / ${latestReport.exercise} / ${relativeTime(latestReport.ts)}` : thread.updated}
                   description={showReportPreview ? latestReport.note : thread.excerpt}
-                  tag={thread.hasReport ? <Tag label={`${unreadReportCount} report${unreadReportCount === 1 ? "" : "s"}`} color={C.red} /> : <Tag label="Open" color={C.blue} />}
+                  tag={thread.hasReport ? <Tag label={unreadReportCount === 1 ? "Needs review" : `${unreadReportCount} need review`} color={C.red} /> : <Tag label="Conversation" color={C.blue} />}
                   onClick={() => onOpenPatient(thread.patientId, "messages")}
-                >
-                  {showReportPreview ? (
-                    <div className="pt-report-metrics">
-                      <Metric label="Pain" value={`${latestReport.pain}/5`} color={latestReport.pain >= 5 ? C.red : C.bone} tone={latestReport.pain >= 5 ? "danger" : "default"} />
-                      <Metric label="Swelling" value={`${latestReport.swelling}/5`} color={latestReport.swelling >= 4 ? C.red : C.bone} tone={latestReport.swelling >= 4 ? "danger" : "default"} />
-                      <Metric label="Location" value={latestReport.location} />
-                    </div>
-                  ) : null}
-                </WorkQueueCard>
+                />
               );
             })}
           </div>
@@ -500,10 +475,13 @@ function PatientWorkspace({
   onSendMessage,
   onAssignExercise,
   onUnassignExercise,
+  onUpdateExerciseCadence,
   onMarkReportReviewed,
 }) {
   const [planSearch, setPlanSearch] = useState("");
   const [planCategory, setPlanCategory] = useState("all");
+  const [expandedPlanExercise, setExpandedPlanExercise] = useState("");
+  const [activePlanSectionId, setActivePlanSectionId] = useState("daily");
   const sortedReports = [...reports].sort((a, b) => b.ts - a.ts);
   const currentReport = sortedReports[0] || report;
   const unreadReport = sortedReports.find((item) => !item.ptRead);
@@ -632,6 +610,9 @@ function PatientWorkspace({
     name: exercise,
     detail: getExerciseDetail(exercise),
     category: getPlanLoad(exercise),
+  })).map((exercise) => ({
+    ...exercise,
+    cadence: patient.planCadence?.[exercise.name] || getDefaultExerciseCadence(exercise.category),
   }));
   const filteredAvailableExercises = availableExercises
     .map((exercise) => ({
@@ -660,6 +641,79 @@ function PatientWorkspace({
     : readinessScore >= 80
       ? "Consider one measured progression."
       : "Keep volume stable through the next check-in.";
+  const planDecision = needsReview
+    ? {
+        id: "hold",
+        label: "Hold progression",
+        color: C.amber,
+        detail: "Review the open symptom report before increasing load.",
+      }
+    : readinessScore >= 80 && phaseMinimumMet
+      ? {
+          id: "progress",
+          label: "Ready to progress",
+          color: C.lime,
+          detail: "Symptoms, timing, and completion support one measured progression.",
+        }
+      : readinessScore >= 60
+        ? {
+            id: "continue",
+            label: "Continue current plan",
+            color: C.blue,
+            detail: "Keep the weekly structure stable and reassess after the next check-in.",
+          }
+        : {
+            id: "hold",
+            label: "Hold progression",
+            color: C.red,
+            detail: "Symptoms or completion history need attention before plan advancement.",
+          };
+  const weeklyPlanSections = [
+    {
+      id: "daily",
+      title: "Daily foundation",
+      cadence: "Every rehab day",
+      assignCadence: "Daily",
+      days: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      exercises: assignedExerciseRows.filter((exercise) => exercise.cadence === "Daily"),
+    },
+    {
+      id: "load",
+      title: "Three-day block",
+      cadence: "Mon / Wed / Fri",
+      assignCadence: "3x / week",
+      days: ["Mon", "Wed", "Fri"],
+      exercises: assignedExerciseRows.filter((exercise) => exercise.cadence === "3x / week"),
+    },
+    {
+      id: "control",
+      title: "Two-day block",
+      cadence: "Tue / Fri",
+      assignCadence: "2x / week",
+      days: ["Tue", "Fri"],
+      exercises: assignedExerciseRows.filter((exercise) => exercise.cadence === "2x / week"),
+    },
+    {
+      id: "recovery",
+      title: "Flexible / hold",
+      cadence: "As needed",
+      assignCadence: "As tolerated",
+      days: ["Sun"],
+      exercises: assignedExerciseRows.filter((exercise) => ["As tolerated", "Hold"].includes(exercise.cadence)),
+      note: needsReview ? "Review report before progressing next week." : "Check symptoms before the next load block.",
+    },
+  ];
+  const assignedCountLabel = `${patient.assignedExercises.length} exercise${patient.assignedExercises.length === 1 ? "" : "s"}`;
+  const todayLabel = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()];
+  const todaysPlanSections = weeklyPlanSections.filter((section) => section.days.includes(todayLabel) && section.exercises.length > 0);
+  const todaysExercises = todaysPlanSections.flatMap((section) => section.exercises.map((exercise) => ({ ...exercise, sectionTitle: section.title })));
+  const todaysPrimaryBlock = todaysPlanSections[0]?.title || "Recovery checkpoint";
+  const todaysSessionIntent = needsReview
+    ? "Keep the session conservative until the open report is reviewed."
+    : todaysExercises.length
+      ? `${todaysPrimaryBlock} with symptom monitoring after completion.`
+      : "No scheduled loading today; use this as a symptom review day.";
+  const activePlanSection = weeklyPlanSections.find((section) => section.id === activePlanSectionId) || weeklyPlanSections[0];
 
   return (
     <div style={{ display: "grid", gap: 18 }}>
@@ -836,6 +890,25 @@ function PatientWorkspace({
               </div>
             </div>
 
+            <div className="pt-plan-decision" style={{ "--decision-color": planDecision.color }}>
+              <div>
+                <Label color={planDecision.color}>Plan status</Label>
+                <div>{planDecision.label}</div>
+                <p>{planDecision.detail}</p>
+              </div>
+              <div className="pt-plan-decision-steps" aria-label="Plan decision path">
+                {[
+                  { id: "hold", label: "Hold" },
+                  { id: "continue", label: "Continue" },
+                  { id: "progress", label: "Progress" },
+                ].map((step) => (
+                  <span key={step.id} className={planDecision.id === step.id ? "active" : ""}>
+                    {step.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
             {needsReview ? (
               <div className="pt-plan-alert">
                 <Label color={C.amber}>Open report</Label>
@@ -846,51 +919,169 @@ function PatientWorkspace({
               </div>
             ) : null}
 
+            <div className="pt-today-plan">
+              <div className="pt-today-header">
+                <div>
+                  <Label>Today&apos;s plan</Label>
+                  <div>{todayLabel} clinical session</div>
+                  <p>{todaysSessionIntent}</p>
+                </div>
+                <div className="pt-today-summary">
+                  <Metric label="Due" value={todaysExercises.length} color={todaysExercises.length ? C.lime : C.amber} />
+                  <Metric label="Blocks" value={todaysPlanSections.length || 1} color={C.blue} />
+                </div>
+              </div>
+              {todaysExercises.length > 0 ? (
+                <div className="pt-today-list">
+                  {todaysExercises.map((exercise, index) => (
+                    <button
+                      key={`${exercise.sectionTitle}-${exercise.name}`}
+                      type="button"
+                      onClick={() => setActivePlanSectionId(weeklyPlanSections.find((section) => section.title === exercise.sectionTitle)?.id || "daily")}
+                    >
+                      <div className="pt-today-index">{index + 1}</div>
+                      <div className="pt-today-main">
+                        <div className="pt-today-exercise">{exercise.name}</div>
+                        <div className="pt-today-dose">{exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}</div>
+                        <div className="pt-today-rationale">{getExercisePurpose(exercise)}</div>
+                      </div>
+                      <div className="pt-today-tags">
+                        <Tag label={exercise.sectionTitle} color={C.blue} />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No exercises due today" message="Open a cadence block below to add work or move an exercise into today's cadence." />
+              )}
+            </div>
+
+            <div className="pt-weekly-plan">
+              <div className="pt-plan-column-header">
+                <div>
+                  <Label>Weekly structure</Label>
+                  <div>Click a block to edit</div>
+                </div>
+                <Tag label={assignedCountLabel} color={C.blue} />
+              </div>
+              <div className="pt-weekly-grid">
+                {weeklyPlanSections.map((section) => (
+                  <button
+                    key={section.id}
+                    type="button"
+                    className={`pt-weekly-section${activePlanSection.id === section.id ? " pt-weekly-section-active" : ""}`}
+                    onClick={() => setActivePlanSectionId(section.id)}
+                    aria-pressed={activePlanSection.id === section.id}
+                  >
+                    <div className="pt-weekly-section-head">
+                      <div>
+                        <div className="pt-weekly-title">{section.title}</div>
+                        <div className="pt-weekly-cadence">{section.cadence}</div>
+                      </div>
+                      <div className="pt-weekly-days" aria-label={`${section.title} days`}>
+                        {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
+                          <span key={day} className={section.days.includes(day) ? "active" : ""}>
+                            {day.slice(0, 1)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="pt-weekly-exercises">
+                      {section.exercises.length > 0 ? (
+                        section.exercises.slice(0, 4).map((exercise) => (
+                          <span key={exercise.name}>{exercise.name}</span>
+                        ))
+                      ) : (
+                        <span>{section.note || "No exercises assigned to this block yet."}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="pt-plan-grid">
               <div className="pt-plan-column">
                 <div className="pt-plan-column-header">
                   <div>
-                    <Label>Assigned</Label>
-                    <div>Daily plan</div>
+                    <Label>Edit block</Label>
+                    <div>{activePlanSection.title}</div>
                   </div>
-                  <Tag label={`${patient.assignedExercises.length} exercises`} color={C.lime} />
+                  <Tag label={`${activePlanSection.exercises.length} exercises`} color={C.lime} />
                 </div>
-                {assignedExerciseRows.length > 0 ? (
-                  assignedExerciseRows.map((exercise) => (
-                    <div key={exercise.name} className="pt-assigned-exercise">
-                      <div className="pt-exercise-main">
-                        <div>
-                          <div className="pt-exercise-title">{exercise.name}</div>
-                          <div className="pt-exercise-dose">
-                            {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}
+                {activePlanSection.exercises.length > 0 ? (
+                  activePlanSection.exercises.map((exercise, index) => {
+                    const isExpanded = expandedPlanExercise === exercise.name;
+                    const categoryColor = getCategoryColor(exercise.category);
+                    return (
+                      <div key={exercise.name} className={`pt-assigned-exercise${isExpanded ? " pt-assigned-exercise-open" : ""}`}>
+                        <div className="pt-assigned-row">
+                          <button
+                            type="button"
+                            className="pt-assigned-toggle"
+                            aria-expanded={isExpanded}
+                            onClick={() => setExpandedPlanExercise(isExpanded ? "" : exercise.name)}
+                          >
+                            <div className="pt-assigned-row-main">
+                              <div className="pt-exercise-index" style={{ "--exercise-color": categoryColor }}>
+                                {index + 1}
+                              </div>
+                              <div>
+                                <div className="pt-exercise-title">{exercise.name}</div>
+                                <div className="pt-exercise-dose">
+                                  {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                          <div className="pt-assigned-row-meta">
+                            <label>
+                              <span>Cadence</span>
+                              <select
+                                value={exercise.cadence}
+                                onChange={(event) => onUpdateExerciseCadence(patient.id, exercise.name, event.target.value)}
+                                aria-label={`${exercise.name} cadence`}
+                              >
+                                {CADENCE_OPTIONS.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                            <Tag label={exercise.category} color={categoryColor} />
                           </div>
                         </div>
-                        <Tag label={exercise.category} color={PLAN_CATEGORIES.find((category) => category.id === exercise.category)?.color || C.muted} />
+                        <div className="pt-assigned-purpose">{getExercisePurpose(exercise)}</div>
+                        {isExpanded ? (
+                          <div className="pt-assigned-details">
+                            <div className="pt-exercise-meta">
+                              <span>{exercise.detail?.equipment || "No equipment listed"}</span>
+                              <span>{exercise.detail?.muscles || "General rehab"}</span>
+                            </div>
+                            <div className="pt-exercise-cue">
+                              {exercise.detail?.cue || "Use clinician guidance for tempo, range, and symptom limits."}
+                            </div>
+                            <button type="button" onClick={() => onUnassignExercise(patient.id, exercise.name)} className="pt-plan-remove">
+                              Remove from plan
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
-                      <div className="pt-exercise-meta">
-                        <span>{exercise.detail?.equipment || "No equipment listed"}</span>
-                        <span>{exercise.detail?.muscles || "General rehab"}</span>
-                      </div>
-                      <div className="pt-exercise-cue">
-                        {exercise.detail?.cue || "Use clinician guidance for tempo, range, and symptom limits."}
-                      </div>
-                      <button type="button" onClick={() => onUnassignExercise(patient.id, exercise.name)} className="pt-plan-remove">
-                        Remove
-                      </button>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
-                  <EmptyState title="No assigned exercises" message="Add exercises from the suggestions list to build today's plan." />
+                  <EmptyState title="No exercises in this block" message="Add from the library to build this cadence block." />
                 )}
               </div>
 
               <div className="pt-plan-column">
                 <div className="pt-plan-column-header">
                   <div>
-                    <Label>Add exercise</Label>
+                    <Label>Add to {activePlanSection.title}</Label>
                     <div>Library matches</div>
                   </div>
-                  <Tag label={`${filteredAvailableExercises.length} shown`} color={C.blue} />
+                  <Tag label={activePlanSection.assignCadence} color={C.blue} />
                 </div>
                 <input
                   value={planSearch}
@@ -913,7 +1104,7 @@ function PatientWorkspace({
                 </div>
                 {filteredAvailableExercises.length > 0 ? (
                   filteredAvailableExercises.map((exercise) => (
-                    <button key={exercise.name} type="button" onClick={() => onAssignExercise(patient.id, exercise.name)} className="pt-add-exercise">
+                    <button key={exercise.name} type="button" onClick={() => onAssignExercise(patient.id, exercise.name, activePlanSection.assignCadence)} className="pt-add-exercise">
                       <div className="pt-exercise-main">
                         <div>
                           <div className="pt-exercise-title">Add {exercise.name}</div>
@@ -921,7 +1112,7 @@ function PatientWorkspace({
                             {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / difficulty ${exercise.detail.difficulty}` : "Demo exercise"}
                           </div>
                         </div>
-                        <Tag label={exercise.category} color={PLAN_CATEGORIES.find((category) => category.id === exercise.category)?.color || C.muted} />
+                        <Tag label={exercise.category} color={getCategoryColor(exercise.category)} />
                       </div>
                       <div className="pt-exercise-cue">
                         {exercise.detail?.cue || "Add to the current plan and set details during review."}
@@ -987,7 +1178,7 @@ function MessagePanel({ thread, reports, onSendMessage, onMarkReportReviewed }) 
           <Label color={C.lime}>Messages</Label>
           <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, lineHeight: 1, marginTop: 6 }}>{thread?.patientName || "No thread selected"}</div>
         </div>
-        {thread?.hasReport ? <Tag label="Report attached" color={C.red} /> : null}
+        {thread?.hasReport ? <Tag label="Needs review" color={C.red} /> : thread ? <Tag label="Conversation" color={C.blue} /> : null}
       </div>
       <div style={{ flex: 1, display: "grid", gap: 12, alignContent: "start", maxHeight: 380, overflowY: "auto", padding: "2px 4px 2px 0" }}>
         {thread ? (
@@ -1021,7 +1212,7 @@ function MessagePanel({ thread, reports, onSendMessage, onMarkReportReviewed }) 
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleSend()}
-          placeholder="Reply to patient..."
+          placeholder="Write a message..."
           style={{ flex: 1, minWidth: 0, borderRadius: 7, border: `1px solid ${C.rim}`, background: C.deep, color: C.bone, padding: "12px 13px", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}
         />
         <button type="button" onClick={handleSend} style={{ padding: "0 16px", border: "none", borderRadius: 7, background: C.lime, color: C.black, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
@@ -1047,6 +1238,7 @@ export function PtPortalView({
   onSendMessage,
   onAssignExercise,
   onUnassignExercise,
+  onUpdateExerciseCadence,
   onMarkReportReviewed,
 }) {
   const [activePatientTab, setActivePatientTab] = useState("overview");
@@ -1378,6 +1570,52 @@ export function PtPortalView({
           gap: 10px;
           margin-bottom: 12px;
         }
+        .pt-plan-decision {
+          border: 1px solid var(--decision-color);
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 13px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 16px;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .pt-plan-decision > div:first-child > div {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 30px;
+          color: var(--decision-color);
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-plan-decision p {
+          margin: 8px 0 0;
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .pt-plan-decision-steps {
+          display: grid;
+          grid-template-columns: repeat(3, auto);
+          gap: 6px;
+        }
+        .pt-plan-decision-steps span {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 999px;
+          padding: 7px 9px;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+        .pt-plan-decision-steps span.active {
+          border-color: var(--decision-color);
+          background: color-mix(in srgb, var(--decision-color) 16%, transparent);
+          color: var(--decision-color);
+        }
         .pt-plan-next {
           border: 1px solid ${C.rim};
           background: ${C.deep};
@@ -1420,6 +1658,187 @@ export function PtPortalView({
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
+        .pt-weekly-plan {
+          display: grid;
+          gap: 10px;
+          margin-bottom: 16px;
+        }
+        .pt-today-plan {
+          display: grid;
+          gap: 12px;
+          margin-bottom: 16px;
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 12px;
+        }
+        .pt-today-header {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 16px;
+          align-items: start;
+          padding-bottom: 12px;
+          border-bottom: 1px solid ${C.rim};
+        }
+        .pt-today-header > div:first-child > div {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 30px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-today-header p {
+          margin: 8px 0 0;
+          color: ${C.muted};
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .pt-today-summary {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(86px, 1fr));
+          gap: 8px;
+        }
+        .pt-today-list {
+          display: grid;
+          gap: 7px;
+        }
+        .pt-today-list button {
+          width: 100%;
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 8px;
+          padding: 10px;
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          gap: 10px;
+          align-items: center;
+          color: ${C.bone};
+          text-align: left;
+        }
+        .pt-today-list button:hover,
+        .pt-today-list button:focus-visible {
+          border-color: ${C.lime}66;
+          background: ${C.limeDim};
+        }
+        .pt-today-index {
+          width: 30px;
+          height: 30px;
+          border: 1px solid ${C.lime}55;
+          background: ${C.limeDim};
+          border-radius: 7px;
+          display: grid;
+          place-items: center;
+          color: ${C.lime};
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          font-weight: 700;
+        }
+        .pt-today-main {
+          min-width: 0;
+        }
+        .pt-today-exercise {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 22px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-today-dose {
+          margin-top: 5px;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          line-height: 1.35;
+        }
+        .pt-today-rationale {
+          color: ${C.bone};
+          font-size: 12px;
+          line-height: 1.35;
+          margin-top: 6px;
+        }
+        .pt-today-tags {
+          display: flex;
+          justify-content: flex-end;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .pt-weekly-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .pt-weekly-section {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 12px;
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+          color: ${C.bone};
+          text-align: left;
+        }
+        .pt-weekly-section:hover,
+        .pt-weekly-section:focus-visible {
+          border-color: ${C.lime}66;
+        }
+        .pt-weekly-section-active {
+          border-color: ${C.lime};
+          background: ${C.limeDim};
+        }
+        .pt-weekly-section-head {
+          display: grid;
+          gap: 10px;
+        }
+        .pt-weekly-title {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 21px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-weekly-cadence {
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          color: ${C.muted};
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-top: 5px;
+        }
+        .pt-weekly-days {
+          display: grid;
+          grid-template-columns: repeat(7, minmax(0, 1fr));
+          gap: 3px;
+        }
+        .pt-weekly-days span {
+          height: 22px;
+          border: 1px solid ${C.rim};
+          border-radius: 5px;
+          display: grid;
+          place-items: center;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 8px;
+        }
+        .pt-weekly-days span.active {
+          border-color: ${C.lime}66;
+          background: ${C.limeDim};
+          color: ${C.lime};
+        }
+        .pt-weekly-exercises {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 5px;
+        }
+        .pt-weekly-exercises span {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 999px;
+          padding: 5px 7px;
+          color: ${C.bone};
+          font-size: 10px;
+          line-height: 1.25;
+        }
         .pt-plan-column {
           display: grid;
           gap: 10px;
@@ -1454,6 +1873,93 @@ export function PtPortalView({
           display: grid;
           gap: 10px;
           min-width: 0;
+        }
+        .pt-assigned-exercise {
+          padding: 0;
+          overflow: hidden;
+        }
+        .pt-assigned-exercise-open {
+          border-color: ${C.lime}44;
+        }
+        .pt-assigned-row {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 12px;
+          align-items: center;
+          padding: 12px;
+        }
+        .pt-assigned-toggle {
+          width: 100%;
+          min-width: 0;
+          border: none;
+          background: transparent;
+          color: ${C.bone};
+          padding: 0;
+          display: block;
+          text-align: left;
+        }
+        .pt-assigned-row-main {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          gap: 10px;
+          align-items: center;
+          min-width: 0;
+        }
+        .pt-exercise-index {
+          width: 32px;
+          height: 32px;
+          border: 1px solid var(--exercise-color);
+          background: color-mix(in srgb, var(--exercise-color) 14%, transparent);
+          border-radius: 7px;
+          display: grid;
+          place-items: center;
+          color: var(--exercise-color);
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          font-weight: 700;
+        }
+        .pt-assigned-row-meta {
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+        .pt-assigned-row-meta label {
+          display: grid;
+          gap: 4px;
+        }
+        .pt-assigned-row-meta label span {
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 8px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-assigned-row-meta select {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          color: ${C.bone};
+          border-radius: 6px;
+          padding: 7px 26px 7px 8px;
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          min-width: 118px;
+        }
+        .pt-assigned-purpose {
+          border-top: 1px solid ${C.rim};
+          padding: 8px 12px;
+          color: ${C.muted};
+          font-size: 12px;
+          line-height: 1.35;
+        }
+        .pt-assigned-details {
+          border-top: 1px solid ${C.rim};
+          padding: 12px;
+          display: grid;
+          gap: 10px;
         }
         .pt-add-exercise {
           border-color: ${C.limeMid};
@@ -1596,6 +2102,9 @@ export function PtPortalView({
           .pt-plan-summary {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
+          .pt-weekly-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
           .pt-overview-grid {
             grid-template-columns: 1fr 1fr;
           }
@@ -1622,8 +2131,32 @@ export function PtPortalView({
           .pt-history-metrics,
           .pt-note-grid,
           .pt-plan-grid,
+          .pt-plan-decision,
+          .pt-weekly-grid,
           .pt-plan-summary {
             grid-template-columns: 1fr;
+          }
+          .pt-plan-decision-steps {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
+          .pt-plan-decision-steps span {
+            text-align: center;
+          }
+          .pt-today-header,
+          .pt-today-list button {
+            grid-template-columns: 1fr;
+          }
+          .pt-today-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .pt-today-tags {
+            justify-content: flex-start;
+          }
+          .pt-assigned-row {
+            grid-template-columns: 1fr;
+          }
+          .pt-assigned-row-meta {
+            justify-content: flex-start;
           }
           .pt-plan-alert {
             grid-template-columns: 1fr;
@@ -1718,6 +2251,7 @@ export function PtPortalView({
                 onSendMessage={onSendMessage}
                 onAssignExercise={onAssignExercise}
                 onUnassignExercise={onUnassignExercise}
+                onUpdateExerciseCadence={onUpdateExerciseCadence}
                 onMarkReportReviewed={onMarkReportReviewed}
               />
             )}

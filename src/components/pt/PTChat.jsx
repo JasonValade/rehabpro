@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { C } from "../../constants/colors";
 import { parseSymptomReportMessage } from "../../utils/reportChat";
+import { SymptomReportCard } from "../ui/SymptomReportCard";
 
 const AI_WELCOME = {
   role: "assistant",
@@ -40,36 +41,6 @@ function ChatBubble({ side, children, accent = false }) {
       >
         {children}
       </div>
-    </div>
-  );
-}
-
-function ReportChatCard({ report }) {
-  return (
-    <div style={{ width: "min(100%, 330px)", border: `1px solid ${C.red}55`, background: C.redDim, borderRadius: 10, padding: 12, display: "grid", gap: 9 }}>
-      <div>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.red, letterSpacing: "0.1em", textTransform: "uppercase" }}>
-          Symptom report
-        </div>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 6 }}>
-          {report.exercise || "General"}
-        </div>
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
-        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 8, padding: "8px 9px" }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Pain</div>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.pain || "0/5"}</div>
-        </div>
-        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 8, padding: "8px 9px" }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Swelling</div>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.swelling || "0/5"}</div>
-        </div>
-      </div>
-      <div style={{ fontSize: 12, color: C.bone, lineHeight: 1.45 }}>
-        <span style={{ color: C.muted }}>Location: </span>
-        {report.location || "Not specified"}
-      </div>
-      {report.note ? <div style={{ borderTop: `1px solid ${C.red}30`, paddingTop: 8, fontSize: 12, color: C.bone, lineHeight: 1.45 }}>{report.note}</div> : null}
     </div>
   );
 }
@@ -201,12 +172,12 @@ export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage })
 
       <div style={{ background: mode === "ai" ? C.blueDim : C.limeDim, border: `1px solid ${mode === "ai" ? C.blue : C.lime}40`, borderRadius: 10, padding: "10px 12px" }}>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, fontWeight: 600, color: C.bone }}>
-          {mode === "ai" ? "RehabPro AI Coach" : ptThread ? "Your physical therapist" : "PT messaging"}
+          {mode === "ai" ? "RehabPro AI Coach" : ptThread ? "Care team messages" : "Messages"}
         </div>
         <div style={{ marginTop: 3, fontFamily: "'DM Sans', sans-serif", fontSize: 11, lineHeight: 1.45, color: C.muted }}>
           {mode === "ai"
             ? "General education only. For severe pain, a new deformity, chest pain, trouble breathing, or new numbness or weakness, seek urgent medical care."
-            : "Messages go directly to your care team."}
+            : "Ask questions, share updates, or review symptom reports with your care team."}
         </div>
       </div>
 
@@ -217,7 +188,7 @@ export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage })
           return (
             report ? (
               <div key={`${message.ts || index}-${index}`} style={{ display: "flex", justifyContent: fromPatient ? "flex-end" : "flex-start" }}>
-                <ReportChatCard report={report} />
+                <SymptomReportCard report={report} statusLabel="Sent" maxWidth="360px" />
               </div>
             ) : (
               <ChatBubble key={`${message.ts || index}-${index}`} side={fromPatient ? "right" : "left"} accent={fromPatient}>
@@ -248,7 +219,7 @@ export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage })
           value={input}
           onChange={(event) => setInput(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && send()}
-          placeholder={mode === "ai" ? "Ask about symptoms or form..." : "Message your PT..."}
+          placeholder={mode === "ai" ? "Ask about symptoms or form..." : "Write a message..."}
           style={{ flex: 1, background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 10, padding: "12px 14px", color: C.bone, fontSize: 13, outline: "none", fontFamily: "'DM Sans', sans-serif" }}
         />
         <button aria-label="Send message" type="button" onClick={send} disabled={disabled} style={{ width: 46, height: 46, background: C.lime, border: "none", borderRadius: 10, color: C.black, fontSize: 18, fontWeight: 900, opacity: disabled ? 0.3 : 1 }}>

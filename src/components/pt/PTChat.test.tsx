@@ -52,8 +52,41 @@ describe('PTChat', () => {
     )
     render(<PTChat {...props} ptThread={null} />)
 
-    expect(screen.getByText('Messages go directly to your care team.')).toBeInTheDocument()
+    expect(screen.getByText('Ask questions, share updates, or review symptom reports with your care team.')).toBeInTheDocument()
     expect(screen.queryByText('Your care team has not started a conversation yet.')).not.toBeInTheDocument()
+  })
+
+  it('renders symptom reports as structured cards in patient messages', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url) =>
+        Promise.resolve({
+          ok: true,
+          json: async () => (url === '/api/chat/status' ? { configured: false } : []),
+        }),
+      ),
+    )
+    render(
+      <PTChat
+        {...props}
+        ptThread={{
+          ...props.ptThread,
+          messages: [
+            {
+              sender: 'patient',
+              text: 'SYMPTOM REPORT\nExercise: Quad Sets\nPain: 3/5\nSwelling: 2/5\nLocation: Front of knee\nNote: Sharp pain during the last rep',
+              ts: 2,
+            },
+          ],
+        }}
+      />,
+    )
+
+    expect(await screen.findByText('Symptom report')).toBeInTheDocument()
+    expect(screen.getByText('Quad Sets')).toBeInTheDocument()
+    expect(screen.getByText('Sent')).toBeInTheDocument()
+    expect(screen.getByText('Sharp pain during the last rep')).toBeInTheDocument()
+    expect(screen.queryByText(/SYMPTOM REPORT\nExercise:/)).not.toBeInTheDocument()
   })
 
   it('sends patient context to the AI endpoint', async () => {

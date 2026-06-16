@@ -45,7 +45,7 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
                   {thread.hasReport && (
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.red }} />
-                      <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.red }}>Report</span>
+                      <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.red }}>Needs review</span>
                     </div>
                   )}
                 </div>
@@ -105,7 +105,7 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              placeholder="Write a reply..."
+              placeholder="Write a message..."
               style={{
                 flex: 1,
                 background: C.panel,
