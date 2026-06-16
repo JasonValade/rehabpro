@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { C } from "../../constants/colors";
+import { EXERCISE_LIBRARY } from "../../data/exerciseLibrary";
 import { MILESTONES } from "../../data/rehabMock";
 import { ProgressArc } from "../ui/ProgressArc";
 import { Tag } from "../ui/Tag";
@@ -178,6 +179,33 @@ function TrendBadge({ label, value, color }) {
       <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color, lineHeight: 1, marginTop: 6 }}>{value}</div>
     </div>
   );
+}
+
+const PLAN_CATEGORIES = [
+  { id: "all", label: "All", color: C.bone },
+  { id: "mobility", label: "Mobility", color: C.blue },
+  { id: "activation", label: "Activation", color: C.lime },
+  { id: "strength", label: "Strength", color: C.amber },
+  { id: "control", label: "Control", color: C.bone },
+];
+
+const EXERCISE_ALIASES = {
+  bridges: "glute bridge",
+  slr: "straight leg raise",
+};
+
+function normalizeExerciseName(name) {
+  const normalized = String(name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return EXERCISE_ALIASES[normalized] || normalized;
+}
+
+function getPlanLoad(exercise) {
+  const name = normalizeExerciseName(exercise);
+  if (name.includes("slide") || name.includes("pump") || name.includes("extension") || name.includes("mobility")) return "mobility";
+  if (name.includes("quad") || name.includes("raise") || name.includes("bridge") || name.includes("activation")) return "activation";
+  if (name.includes("squat") || name.includes("step") || name.includes("calf") || name.includes("lunge") || name.includes("press")) return "strength";
+  if (name.includes("balance") || name.includes("hop") || name.includes("landing") || name.includes("shuffle") || name.includes("walk")) return "control";
+  return "general";
 }
 
 const SIDEBAR_SECTIONS = [
@@ -408,6 +436,8 @@ function PatientWorkspace({
   onUnassignExercise,
   onMarkReportReviewed,
 }) {
+  const [planSearch, setPlanSearch] = useState("");
+  const [planCategory, setPlanCategory] = useState("all");
   const sortedReports = [...reports].sort((a, b) => b.ts - a.ts);
   const currentReport = sortedReports[0] || report;
   const unreadReport = sortedReports.find((item) => !item.ptRead);
@@ -422,7 +452,6 @@ function PatientWorkspace({
     ...checkIns.map((item) => ({ ...item, type: "check-in" })),
   ].sort((a, b) => b.ts - a.ts);
   const normalizeToTen = (value, max) => Number.isFinite(Number(value)) ? Math.round((Number(value) / max) * 10) : null;
-  const symptomValue = (item, key) => normalizeToTen(item[key], item.type === "report" ? 5 : 10);
   const getTrend = (values) => {
     if (values.length < 2) return { label: "Need data", delta: 0, color: C.muted, status: "watch" };
     const firstValue = values[0];
@@ -432,14 +461,15 @@ function PatientWorkspace({
     if (delta >= 1) return { label: "Worse", delta, color: C.red, status: "watch" };
     return { label: "Flat", delta, color: C.blue, status: "pass" };
   };
-  const getPlanLoad = (exercise) => {
-    const name = exercise.toLowerCase();
-    if (name.includes("slide") || name.includes("pump") || name.includes("extension") || name.includes("mobility")) return "mobility";
-    if (name.includes("quad") || name.includes("raise") || name.includes("bridge") || name.includes("activation")) return "activation";
-    if (name.includes("squat") || name.includes("step") || name.includes("calf") || name.includes("lunge")) return "strength";
-    if (name.includes("balance") || name.includes("hop") || name.includes("landing") || name.includes("shuffle")) return "control";
-    return "general";
-  };
+  const exerciseDetailByName = useMemo(
+    () =>
+      EXERCISE_LIBRARY.reduce((lookup, exercise) => {
+        lookup.set(normalizeExerciseName(exercise.name), exercise);
+        return lookup;
+      }, new Map()),
+    [],
+  );
+  const getExerciseDetail = (exercise) => exerciseDetailByName.get(normalizeExerciseName(exercise));
   const getNextMilestone = () => {
     if (patient.injury?.toLowerCase().includes("achilles")) {
       return patient.week < 8
@@ -531,6 +561,39 @@ function PatientWorkspace({
         : symptomStatus !== "pass"
           ? "Hold the current phase because symptom response still needs to settle."
           : "Hold the current phase until movement quality is verified.";
+  const planSearchTerm = planSearch.trim().toLowerCase();
+  const assignedExerciseRows = patient.assignedExercises.map((exercise) => ({
+    name: exercise,
+    detail: getExerciseDetail(exercise),
+    category: getPlanLoad(exercise),
+  }));
+  const filteredAvailableExercises = availableExercises
+    .map((exercise) => ({
+      name: exercise,
+      detail: getExerciseDetail(exercise),
+      category: getPlanLoad(exercise),
+    }))
+    .filter((exercise) => planCategory === "all" || exercise.category === planCategory)
+    .filter((exercise) => {
+      if (!planSearchTerm) return true;
+      const haystack = [
+        exercise.name,
+        exercise.detail?.muscles,
+        exercise.detail?.equipment,
+        exercise.detail?.cue,
+        exercise.category,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return haystack.includes(planSearchTerm);
+    })
+    .slice(0, 10);
+  const planPrimaryFocus = planLoadLabel === "Foundation" ? "Protect symptoms" : planLoadLabel === "Higher load" ? "Build capacity" : "Balance load";
+  const planRiskLabel = needsReview ? "Review first" : symptomStatus === "watch" ? "Monitor symptoms" : "Clear to continue";
+  const planRiskColor = needsReview || symptomStatus === "watch" ? C.amber : C.lime;
+  const planNextAction = needsReview
+    ? "Read the latest report before changing load."
+    : readinessScore >= 80
+      ? "Consider one measured progression."
+      : "Keep volume stable through the next check-in.";
 
   return (
     <div style={{ display: "grid", gap: 18 }}>
@@ -692,17 +755,60 @@ function PatientWorkspace({
             <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", marginBottom: 14 }}>
               <div>
                 <Label color={C.lime}>Exercise plan</Label>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, marginTop: 5 }}>Assigned today</div>
+                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, marginTop: 5 }}>Today&apos;s clinical plan</div>
               </div>
-              <Tag label={`${patient.assignedExercises.length} exercises`} color={C.lime} />
+              <Tag label={planRiskLabel} color={planRiskColor} />
             </div>
+
+            <div className="pt-plan-summary">
+              <TrendBadge label="Focus" value={planPrimaryFocus} color={C.bone} />
+              <TrendBadge label="Readiness" value={`${readinessScore}%`} color={readinessColor} />
+              <TrendBadge label="Plan load" value={planLoadLabel} color={planStatus === "pass" ? C.lime : C.amber} />
+              <div className="pt-plan-next">
+                <Label>Next action</Label>
+                <div>{planNextAction}</div>
+              </div>
+            </div>
+
+            {needsReview ? (
+              <div className="pt-plan-alert">
+                <Label color={C.amber}>Open report</Label>
+                <div>Hold progressions until the latest symptom report is reviewed.</div>
+                <button type="button" onClick={() => onMarkReportReviewed(unreadReport.id)}>
+                  Mark reviewed
+                </button>
+              </div>
+            ) : null}
+
             <div className="pt-plan-grid">
-              <div style={{ display: "grid", gap: 8 }}>
-                {patient.assignedExercises.length > 0 ? (
-                  patient.assignedExercises.map((exercise) => (
-                    <div key={exercise} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "10px 12px" }}>
-                      <div style={{ fontSize: 13, color: C.bone }}>{exercise}</div>
-                      <button type="button" onClick={() => onUnassignExercise(patient.id, exercise)} style={{ border: `1px solid ${C.rim}`, background: C.panel, color: C.muted, borderRadius: 6, padding: "7px 8px", fontFamily: "'Fira Code', monospace", fontSize: 9, textTransform: "uppercase" }}>
+              <div className="pt-plan-column">
+                <div className="pt-plan-column-header">
+                  <div>
+                    <Label>Assigned</Label>
+                    <div>Daily plan</div>
+                  </div>
+                  <Tag label={`${patient.assignedExercises.length} exercises`} color={C.lime} />
+                </div>
+                {assignedExerciseRows.length > 0 ? (
+                  assignedExerciseRows.map((exercise) => (
+                    <div key={exercise.name} className="pt-assigned-exercise">
+                      <div className="pt-exercise-main">
+                        <div>
+                          <div className="pt-exercise-title">{exercise.name}</div>
+                          <div className="pt-exercise-dose">
+                            {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / rest ${exercise.detail.rest}` : "Dose not set"}
+                          </div>
+                        </div>
+                        <Tag label={exercise.category} color={PLAN_CATEGORIES.find((category) => category.id === exercise.category)?.color || C.muted} />
+                      </div>
+                      <div className="pt-exercise-meta">
+                        <span>{exercise.detail?.equipment || "No equipment listed"}</span>
+                        <span>{exercise.detail?.muscles || "General rehab"}</span>
+                      </div>
+                      <div className="pt-exercise-cue">
+                        {exercise.detail?.cue || "Use clinician guidance for tempo, range, and symptom limits."}
+                      </div>
+                      <button type="button" onClick={() => onUnassignExercise(patient.id, exercise.name)} className="pt-plan-remove">
                         Remove
                       </button>
                     </div>
@@ -711,13 +817,53 @@ function PatientWorkspace({
                   <EmptyState title="No assigned exercises" message="Add exercises from the suggestions list to build today's plan." />
                 )}
               </div>
-              <div style={{ display: "grid", gap: 8, alignContent: "start" }}>
-                {availableExercises.length > 0 ? (
-                  availableExercises.map((exercise) => (
-                    <button key={exercise} type="button" onClick={() => onAssignExercise(patient.id, exercise)} style={{ width: "100%", border: `1px solid ${C.limeMid}`, background: C.limeDim, color: C.bone, borderRadius: 7, padding: "10px 12px", textAlign: "left", fontSize: 13 }}>
-                      Add {exercise}
+
+              <div className="pt-plan-column">
+                <div className="pt-plan-column-header">
+                  <div>
+                    <Label>Add exercise</Label>
+                    <div>Library matches</div>
+                  </div>
+                  <Tag label={`${filteredAvailableExercises.length} shown`} color={C.blue} />
+                </div>
+                <input
+                  value={planSearch}
+                  onChange={(event) => setPlanSearch(event.target.value)}
+                  placeholder="Search name, muscle, cue..."
+                  className="pt-plan-search"
+                />
+                <div className="pt-plan-filters" role="list" aria-label="Exercise categories">
+                  {PLAN_CATEGORIES.map((category) => (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => setPlanCategory(category.id)}
+                      aria-pressed={planCategory === category.id}
+                      style={{ "--category-color": category.color }}
+                    >
+                      {category.label}
+                    </button>
+                  ))}
+                </div>
+                {filteredAvailableExercises.length > 0 ? (
+                  filteredAvailableExercises.map((exercise) => (
+                    <button key={exercise.name} type="button" onClick={() => onAssignExercise(patient.id, exercise.name)} className="pt-add-exercise">
+                      <div className="pt-exercise-main">
+                        <div>
+                          <div className="pt-exercise-title">Add {exercise.name}</div>
+                          <div className="pt-exercise-dose">
+                            {exercise.detail ? `${exercise.detail.sets} sets / ${exercise.detail.reps} / difficulty ${exercise.detail.difficulty}` : "Demo exercise"}
+                          </div>
+                        </div>
+                        <Tag label={exercise.category} color={PLAN_CATEGORIES.find((category) => category.id === exercise.category)?.color || C.muted} />
+                      </div>
+                      <div className="pt-exercise-cue">
+                        {exercise.detail?.cue || "Add to the current plan and set details during review."}
+                      </div>
                     </button>
                   ))
+                ) : availableExercises.length > 0 ? (
+                  <EmptyState title="No matches" message="Adjust the search or category filter to find another exercise." />
                 ) : (
                   <EmptyState title="Plan is full" message="Every exercise in the demo library is already assigned to this patient." />
                 )}
@@ -841,7 +987,7 @@ export function PtPortalView({
     [checkIns],
   );
   const availableExercises = useMemo(
-    () => exerciseNames.filter((exercise) => selectedPatient && !selectedPatient.assignedExercises.includes(exercise)).slice(0, 6),
+    () => exerciseNames.filter((exercise) => selectedPatient && !selectedPatient.assignedExercises.includes(exercise)),
     [exerciseNames, selectedPatient],
   );
   const isPatientListOnly = !selectedPatient;
@@ -1144,6 +1290,194 @@ export function PtPortalView({
           gap: 12px;
           margin-top: 16px;
         }
+        .pt-plan-summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .pt-plan-next {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 7px;
+          padding: 11px 12px;
+          min-width: 0;
+        }
+        .pt-plan-next div {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.45;
+          margin-top: 8px;
+        }
+        .pt-plan-alert {
+          border: 1px solid ${C.amber}55;
+          background: ${C.amberDim};
+          border-radius: 8px;
+          padding: 12px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 8px 14px;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+        .pt-plan-alert div {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .pt-plan-alert button {
+          grid-row: 1 / span 2;
+          grid-column: 2;
+          border: 1px solid ${C.amber}66;
+          background: ${C.panel};
+          border-radius: 7px;
+          color: ${C.bone};
+          padding: 10px 12px;
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-plan-column {
+          display: grid;
+          gap: 10px;
+          align-content: start;
+          min-width: 0;
+        }
+        .pt-plan-column-header {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 7px;
+          padding: 12px;
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: center;
+        }
+        .pt-plan-column-header div div {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 22px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-assigned-exercise,
+        .pt-add-exercise {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 13px;
+          color: ${C.bone};
+          text-align: left;
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+        }
+        .pt-add-exercise {
+          border-color: ${C.limeMid};
+          background: ${C.limeDim};
+        }
+        .pt-add-exercise:hover,
+        .pt-add-exercise:focus-visible {
+          border-color: ${C.lime};
+        }
+        .pt-exercise-main {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          align-items: start;
+          min-width: 0;
+        }
+        .pt-exercise-main > div {
+          min-width: 0;
+        }
+        .pt-exercise-title {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 20px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-exercise-dose {
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          color: ${C.muted};
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          margin-top: 6px;
+          line-height: 1.4;
+        }
+        .pt-exercise-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .pt-exercise-meta span {
+          border: 1px solid ${C.rim};
+          border-radius: 999px;
+          padding: 5px 7px;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          line-height: 1.2;
+        }
+        .pt-exercise-cue {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .pt-plan-remove {
+          justify-self: start;
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          color: ${C.muted};
+          border-radius: 7px;
+          padding: 8px 10px;
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-plan-remove:hover,
+        .pt-plan-remove:focus-visible {
+          color: ${C.red};
+          border-color: ${C.red}55;
+        }
+        .pt-plan-search {
+          width: 100%;
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          color: ${C.bone};
+          border-radius: 7px;
+          padding: 12px 13px;
+          font-family: 'DM Sans', sans-serif;
+          font-size: 13px;
+        }
+        .pt-plan-search::placeholder {
+          color: ${C.muted};
+        }
+        .pt-plan-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 7px;
+        }
+        .pt-plan-filters button {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 999px;
+          color: ${C.muted};
+          padding: 7px 9px;
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .pt-plan-filters button[aria-pressed="true"] {
+          border-color: var(--category-color);
+          background: ${C.limeDim};
+          color: var(--category-color);
+        }
         .pt-plan-preview {
           display: flex;
           flex-wrap: wrap;
@@ -1177,6 +1511,9 @@ export function PtPortalView({
             margin-top: 0 !important;
             grid-template-columns: 1fr;
           }
+          .pt-plan-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
           .pt-overview-grid {
             grid-template-columns: 1fr 1fr;
           }
@@ -1202,8 +1539,17 @@ export function PtPortalView({
           .pt-trend-grid,
           .pt-history-metrics,
           .pt-note-grid,
-          .pt-plan-grid {
+          .pt-plan-grid,
+          .pt-plan-summary {
             grid-template-columns: 1fr;
+          }
+          .pt-plan-alert {
+            grid-template-columns: 1fr;
+          }
+          .pt-plan-alert button {
+            grid-column: auto;
+            grid-row: auto;
+            justify-self: start;
           }
           .pt-load-grid {
             grid-template-columns: 1fr 1fr;

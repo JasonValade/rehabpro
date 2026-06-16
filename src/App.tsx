@@ -227,7 +227,7 @@ export default function RehabPro() {
     setPtPatients((prev) =>
       prev.map((patient) =>
         patient.id === patientId
-          ? { ...patient, assignedExercises: patient.assignedExercises.filter((item) => item !== exercise) }
+          ? { ...patient, assignedExercises: patient.assignedExercises.filter((item: string) => item !== exercise) }
           : patient,
       ),
     )
