@@ -691,7 +691,7 @@ export default function RehabPro() {
                       Demo data
                     </div>
                     <div style={{ fontSize: 12, lineHeight: 1.45, color: C.bone }}>
-                      Uses local sample data for product walkthroughs. Do not enter real patient or medical information.
+                      Demo-only prototype using local sample data. Not HIPAA-ready, not medical advice, and not for real patient or medical information.
                     </div>
                   </div>
                 </div>

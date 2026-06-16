@@ -2,6 +2,8 @@
 
 RehabPro is a React + Vite rehabilitation dashboard prototype for patient rehab workflows. The app includes a lightweight Express backend, local state persistence, and a shared UI layer for tracking workouts, progress, symptom reports, and care-team messaging.
 
+> **Demo-only notice:** This repository is a prototype using mock patient data and demo-only authentication. It is not HIPAA-ready, is not intended for protected health information, and should not be used for real medical care or clinical decision-making.
+
 ## Product vision
 
 RehabPro should feel like a two-sided rehab platform with different interfaces for different daily contexts:
@@ -86,6 +88,7 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 
 ## Public demo security
 
+- Label public deployments as demo-only and not for real patient information.
 - Keep `ENABLE_AI=false` and `ENABLE_DEMO_API=false` unless those server features are intentionally needed.
 - Set `CORS_ORIGIN` to the exact deployed frontend URL, such as `https://rehabpro-demo.example.com`.
 - Never enter real patient information. Authentication and local storage are demo-only and are not suitable for protected health information.
