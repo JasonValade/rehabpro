@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { C } from "../../constants/colors";
 import { EXERCISE_LIBRARY } from "../../data/exerciseLibrary";
 import { MILESTONES } from "../../data/rehabMock";
+import { parseSymptomReportMessage } from "../../utils/reportChat";
 import { ProgressArc } from "../ui/ProgressArc";
 import { Tag } from "../ui/Tag";
 
@@ -157,6 +158,51 @@ function TimelineItem({ item, type, onMarkReviewed }) {
   );
 }
 
+function SymptomReportCard({ report, sourceReport, onMarkReviewed }) {
+  const isReviewed = sourceReport?.ptRead;
+  const accent = isReviewed ? C.lime : C.red;
+
+  return (
+    <div style={{ border: `1px solid ${accent}55`, background: isReviewed ? C.limeDim : C.redDim, borderRadius: 8, padding: 12, display: "grid", gap: 10, minWidth: 260 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
+        <div style={{ minWidth: 0 }}>
+          <Label color={accent}>Symptom report</Label>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 23, color: C.bone, lineHeight: 1, marginTop: 6 }}>{report.exercise || "General"}</div>
+        </div>
+        <Tag label={isReviewed ? "Reviewed" : "Needs review"} color={accent} />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 7 }}>
+        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px" }}>
+          <Label>Pain</Label>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.pain || "0/5"}</div>
+        </div>
+        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px" }}>
+          <Label>Swelling</Label>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.swelling || "0/5"}</div>
+        </div>
+        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 7, padding: "9px 10px", minWidth: 0 }}>
+          <Label>Location</Label>
+          <div style={{ fontSize: 12, color: C.bone, lineHeight: 1.35, marginTop: 6, overflowWrap: "anywhere" }}>{report.location || "Not specified"}</div>
+        </div>
+      </div>
+      {report.note ? (
+        <div style={{ borderTop: `1px solid ${accent}30`, paddingTop: 9, color: C.bone, fontSize: 13, lineHeight: 1.5 }}>
+          {report.note}
+        </div>
+      ) : null}
+      {!isReviewed && sourceReport ? (
+        <button
+          type="button"
+          onClick={onMarkReviewed}
+          style={{ justifySelf: "start", padding: "10px 12px", border: `1px solid ${C.red}55`, borderRadius: 7, background: C.panel, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}
+        >
+          Mark as read
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function ProgressCheckRow({ label, value, detail, status = "watch" }) {
   const passed = status === "pass";
   const color = passed ? C.lime : C.amber;
@@ -275,6 +321,12 @@ function PortalSection({
     return bTs - aTs;
   });
   const patientById = new Map(patients.map((patient) => [patient.id, patient]));
+  const reportsByPatient = reports.reduce((groups, report) => {
+    const patientReports = groups.get(report.patientId) || [];
+    patientReports.push(report);
+    groups.set(report.patientId, patientReports);
+    return groups;
+  }, new Map());
 
   if (section === "review") {
     return (
@@ -338,16 +390,31 @@ function PortalSection({
         />
         <Panel>
           <div style={{ display: "grid", gap: 10 }}>
-            {sortedThreads.map((thread) => (
-              <WorkQueueCard
-                key={thread.id}
-                title={thread.patientName}
-                meta={thread.updated}
-                description={thread.excerpt}
-                tag={thread.hasReport ? <Tag label="Report attached" color={C.red} /> : <Tag label="Open" color={C.blue} />}
-                onClick={() => onOpenPatient(thread.patientId, "messages")}
-              />
-            ))}
+            {sortedThreads.map((thread) => {
+              const threadReports = reportsByPatient.get(thread.patientId) || [];
+              const latestReport = threadReports.slice().sort((a, b) => b.ts - a.ts)[0];
+              const unreadReportCount = threadReports.filter((report) => !report.ptRead).length;
+              const showReportPreview = thread.hasReport && latestReport;
+
+              return (
+                <WorkQueueCard
+                  key={thread.id}
+                  title={thread.patientName}
+                  meta={showReportPreview ? `${latestReport.exercise} / ${relativeTime(latestReport.ts)}` : thread.updated}
+                  description={showReportPreview ? latestReport.note : thread.excerpt}
+                  tag={thread.hasReport ? <Tag label={`${unreadReportCount} report${unreadReportCount === 1 ? "" : "s"}`} color={C.red} /> : <Tag label="Open" color={C.blue} />}
+                  onClick={() => onOpenPatient(thread.patientId, "messages")}
+                >
+                  {showReportPreview ? (
+                    <div className="pt-report-metrics">
+                      <Metric label="Pain" value={`${latestReport.pain}/5`} color={latestReport.pain >= 5 ? C.red : C.bone} tone={latestReport.pain >= 5 ? "danger" : "default"} />
+                      <Metric label="Swelling" value={`${latestReport.swelling}/5`} color={latestReport.swelling >= 4 ? C.red : C.bone} tone={latestReport.swelling >= 4 ? "danger" : "default"} />
+                      <Metric label="Location" value={latestReport.location} />
+                    </div>
+                  ) : null}
+                </WorkQueueCard>
+              );
+            })}
           </div>
         </Panel>
       </>
@@ -371,7 +438,6 @@ function PortalSection({
                 title={patient.name}
                 meta={`${patient.injury} / Week ${patient.week}`}
                 description={`${patient.assignedExercises.length} assigned exercises for ${patient.stage.toLowerCase()}.`}
-                tag={<Tag label="Edit plan" color={patient.color} />}
                 onClick={() => onOpenPatient(patient.id, "plan")}
               >
                 <div className="pt-plan-preview">
@@ -872,7 +938,7 @@ function PatientWorkspace({
           </Panel>
         )}
 
-        {activeTab === "messages" && <MessagePanel thread={activeThread} onSendMessage={onSendMessage} />}
+        {activeTab === "messages" && <MessagePanel thread={activeThread} reports={reports} onSendMessage={onSendMessage} onMarkReportReviewed={onMarkReportReviewed} />}
 
         {activeTab === "history" && (
           <Panel style={{ minHeight: "100%" }}>
@@ -904,7 +970,7 @@ function PatientWorkspace({
   );
 }
 
-function MessagePanel({ thread, onSendMessage }) {
+function MessagePanel({ thread, reports, onSendMessage, onMarkReportReviewed }) {
   const [draft, setDraft] = useState("");
 
   const handleSend = () => {
@@ -915,28 +981,42 @@ function MessagePanel({ thread, onSendMessage }) {
   };
 
   return (
-    <Panel style={{ minHeight: 360, display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", marginBottom: 14 }}>
+    <Panel style={{ minHeight: 420, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", marginBottom: 16 }}>
         <div>
           <Label color={C.lime}>Messages</Label>
           <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, lineHeight: 1, marginTop: 6 }}>{thread?.patientName || "No thread selected"}</div>
         </div>
         {thread?.hasReport ? <Tag label="Report attached" color={C.red} /> : null}
       </div>
-      <div style={{ flex: 1, display: "grid", gap: 10, alignContent: "start", maxHeight: 310, overflowY: "auto", paddingRight: 4 }}>
+      <div style={{ flex: 1, display: "grid", gap: 12, alignContent: "start", maxHeight: 380, overflowY: "auto", padding: "2px 4px 2px 0" }}>
         {thread ? (
-          thread.messages.map((message, index) => (
-            <div key={`${message.ts}-${index}`} style={{ display: "flex", justifyContent: message.sender === "pt" ? "flex-end" : "flex-start" }}>
-              <div style={{ maxWidth: "82%", borderRadius: 8, padding: "11px 12px", background: message.sender === "pt" ? C.lime : C.deep, color: message.sender === "pt" ? C.black : C.bone, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
-                {message.text}
+          thread.messages.map((message, index) => {
+            const report = parseSymptomReportMessage(message.text);
+            const sourceReport = report
+              ? reports.find((item) => item.id === message.reportId) ||
+                reports.find((item) => item.patientId === thread.patientId && item.ts === message.ts) ||
+                reports.find((item) => item.patientId === thread.patientId && item.exercise === report.exercise && `${item.pain}/5` === report.pain && `${item.swelling}/5` === report.swelling)
+              : null;
+            return (
+              <div key={`${message.ts}-${index}`} style={{ display: "flex", justifyContent: message.sender === "pt" ? "flex-end" : "flex-start" }}>
+                {report ? (
+                  <div style={{ width: "min(100%, 560px)" }}>
+                    <SymptomReportCard report={report} sourceReport={sourceReport} onMarkReviewed={() => onMarkReportReviewed(sourceReport.id)} />
+                  </div>
+                ) : (
+                  <div style={{ maxWidth: "82%", borderRadius: message.sender === "pt" ? "8px 8px 2px 8px" : "8px 8px 8px 2px", padding: "11px 12px", background: message.sender === "pt" ? C.lime : C.deep, border: message.sender === "pt" ? "none" : `1px solid ${C.rim}`, color: message.sender === "pt" ? C.black : C.bone, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
+                    {message.text}
+                  </div>
+                )}
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <EmptyState title="No thread selected" message="Choose a patient from the caseload to open their conversation." />
         )}
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+      <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.rim}` }}>
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -974,7 +1054,9 @@ export function PtPortalView({
   const selectedPatient = patients.find((patient) => patient.id === selectedPatientId) || null;
   const selectedReport = reports.find((report) => report.patientId === selectedPatient?.id);
   const selectedCheckIn = [...checkIns].reverse().find((checkIn) => checkIn.patientId === selectedPatient?.id);
-  const activeThread = threads.find((thread) => thread.id === activeThreadId) || threads.find((thread) => thread.patientId === selectedPatient?.id);
+  const activeThread = selectedPatient
+    ? threads.find((thread) => thread.patientId === selectedPatient.id && thread.id === activeThreadId) || threads.find((thread) => thread.patientId === selectedPatient.id)
+    : null;
   const latestCheckInsByPatient = useMemo(
     () =>
       checkIns.reduce((latest, checkIn) => {

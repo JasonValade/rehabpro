@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { C } from "../../constants/colors";
+import { parseSymptomReportMessage } from "../../utils/reportChat";
 
 const AI_WELCOME = {
   role: "assistant",
@@ -39,6 +40,36 @@ function ChatBubble({ side, children, accent = false }) {
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+function ReportChatCard({ report }) {
+  return (
+    <div style={{ width: "min(100%, 330px)", border: `1px solid ${C.red}55`, background: C.redDim, borderRadius: 10, padding: 12, display: "grid", gap: 9 }}>
+      <div>
+        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.red, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Symptom report
+        </div>
+        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 6 }}>
+          {report.exercise || "General"}
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7 }}>
+        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 8, padding: "8px 9px" }}>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Pain</div>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.pain || "0/5"}</div>
+        </div>
+        <div style={{ border: `1px solid ${C.rim}`, background: C.deep, borderRadius: 8, padding: "8px 9px" }}>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, letterSpacing: "0.08em", textTransform: "uppercase" }}>Swelling</div>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1, marginTop: 5 }}>{report.swelling || "0/5"}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: C.bone, lineHeight: 1.45 }}>
+        <span style={{ color: C.muted }}>Location: </span>
+        {report.location || "Not specified"}
+      </div>
+      {report.note ? <div style={{ borderTop: `1px solid ${C.red}30`, paddingTop: 8, fontSize: 12, color: C.bone, lineHeight: 1.45 }}>{report.note}</div> : null}
     </div>
   );
 }
@@ -182,10 +213,17 @@ export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage })
       <div aria-live="polite" style={{ flex: 1, minHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, paddingRight: 2 }}>
         {visibleMessages.map((message, index) => {
           const fromPatient = mode === "ai" ? message.role === "user" : message.sender === "patient";
+          const report = mode === "pt" ? parseSymptomReportMessage(message.text) : null;
           return (
-            <ChatBubble key={`${message.ts || index}-${index}`} side={fromPatient ? "right" : "left"} accent={fromPatient}>
-              {mode === "ai" ? message.content : message.text}
-            </ChatBubble>
+            report ? (
+              <div key={`${message.ts || index}-${index}`} style={{ display: "flex", justifyContent: fromPatient ? "flex-end" : "flex-start" }}>
+                <ReportChatCard report={report} />
+              </div>
+            ) : (
+              <ChatBubble key={`${message.ts || index}-${index}`} side={fromPatient ? "right" : "left"} accent={fromPatient}>
+                {mode === "ai" ? message.content : message.text}
+              </ChatBubble>
+            )
           );
         })}
         {loading && <ChatBubble side="left">Thinking...</ChatBubble>}

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { C } from './constants/colors'
 import { AUTH_USERS } from './data/authUsers'
 import { MILESTONES, REHAB_TODAY, INTAKE_REHAB_TODAY, PATIENT_DEMO_PROFILES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES, RETURNING_PATIENT_PROGRESS, RETURNING_PATIENT_COMPLETION_HISTORY } from './data/rehabMock'
@@ -99,6 +99,89 @@ const backfillDemoCheckIns = (checkIns: any[]) => {
   return [...checkIns, ...missingDemoCheckIns].sort((a, b) => a.ts - b.ts)
 }
 
+const formatThreadUpdated = (ts: number) => {
+  const minutes = Math.max(1, Math.round((Date.now() - ts) / 60000))
+  if (minutes < 60) return `${minutes}m ago`
+  const hours = Math.round(minutes / 60)
+  if (hours < 24) return `${hours}h ago`
+  return `${Math.round(hours / 24)}d ago`
+}
+
+const reportThreadId = (patientId: string) => `thread_${patientId}`
+
+const mergeReportsIntoThreads = (threads: any[], reports: any[], patients: any[]) => {
+  const patientById = new Map(patients.map((patient) => [patient.id, patient]))
+  const reportsByPatient = reports.reduce((groups, report) => {
+    const patientReports = groups.get(report.patientId) || []
+    patientReports.push(report)
+    groups.set(report.patientId, patientReports)
+    return groups
+  }, new Map())
+
+  const mergedByPatient = new Map(
+    threads.map((thread) => [
+      thread.patientId,
+      {
+        ...thread,
+        messages: [...(thread.messages || [])],
+      },
+    ]),
+  )
+
+  reports
+    .slice()
+    .sort((a, b) => a.ts - b.ts)
+    .forEach((report) => {
+      const patient = patientById.get(report.patientId)
+      const reportMessage = {
+        sender: 'patient',
+        text: formatSymptomReportMessage(report),
+        ts: report.ts,
+        reportId: report.id,
+      }
+      const thread =
+        mergedByPatient.get(report.patientId) || {
+          id: reportThreadId(report.patientId),
+          patientId: report.patientId,
+          patientName: patient?.name || 'Unknown patient',
+          updated: formatThreadUpdated(report.ts),
+          excerpt: `Symptom report: ${report.exercise || 'General'}`,
+          hasReport: false,
+          messages: [],
+        }
+
+      const alreadyInThread = thread.messages.some(
+        (message: any) =>
+          message.reportId === report.id ||
+          (message.sender === 'patient' && message.ts === report.ts && message.text === reportMessage.text),
+      )
+
+      if (!alreadyInThread) {
+        thread.messages = [...thread.messages, reportMessage].sort((a: any, b: any) => (a.ts || 0) - (b.ts || 0))
+      }
+
+      mergedByPatient.set(report.patientId, thread)
+    })
+
+  return Array.from(mergedByPatient.values()).map((thread) => {
+    const patientReports = reportsByPatient.get(thread.patientId) || []
+    const unreadReports = patientReports.filter((report: any) => !report.ptRead)
+    const latestReport = patientReports.slice().sort((a: any, b: any) => b.ts - a.ts)[0]
+    const latestMessage = thread.messages.slice().sort((a: any, b: any) => (b.ts || 0) - (a.ts || 0))[0]
+    const latestTs = latestMessage?.ts || latestReport?.ts
+    const latestIsReport = latestReport && (!latestMessage?.ts || latestReport.ts >= latestMessage.ts)
+
+    return {
+      ...thread,
+      hasReport: unreadReports.length > 0,
+      updated: latestTs ? formatThreadUpdated(latestTs) : thread.updated,
+      excerpt: latestIsReport
+        ? `Symptom report: ${latestReport.exercise || 'General'}`
+        : latestMessage?.text || thread.excerpt,
+    }
+  })
+}
+
 function mergeExerciseMetadata(savedItems: any[], sourceItems: any[]) {
   return savedItems.map((item) => {
     const source = sourceItems.find((candidate) => candidate.id === item.id || candidate.name === item.name)
@@ -134,6 +217,10 @@ export default function RehabPro() {
   const demoPtUser = AUTH_USERS.find((user) => user.role === 'pt')
   const demoOptions = [...demoPatientUsers, ...(demoPtUser ? [demoPtUser] : [])]
   const visiblePatients = visiblePtPatients(ptPatients)
+  const reportBackedThreads = useMemo(
+    () => mergeReportsIntoThreads(ptThreads, reports, visiblePatients),
+    [ptThreads, reports, visiblePatients],
+  )
 
   useEffect(() => {
     if (authUser?.role === 'patient' && viewMode !== 'patient') {
@@ -202,9 +289,14 @@ export default function RehabPro() {
     setTab('train')
   }
 
-  const handleSelectPortalPatient = (patientId: string) => {
+  const handleSelectPortalPatient = (patientId: string | null) => {
     setSelectedPatientId(patientId)
-    setActiveThreadId(PT_THREADS.find((thread) => thread.patientId === patientId)?.id || '')
+    if (!patientId) {
+      setActiveThreadId('')
+      return
+    }
+
+    setActiveThreadId(reportBackedThreads.find((thread) => thread.patientId === patientId)?.id || reportThreadId(patientId))
   }
 
   const handleBackToPtHome = () => {
@@ -235,17 +327,30 @@ export default function RehabPro() {
 
   const handleSendPtMessage = (threadId: string, text: string) => {
     setPtThreads((prev) =>
-      prev.map((thread) =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              hasReport: false,
+      prev.some((thread) => thread.id === threadId)
+        ? prev.map((thread) =>
+            thread.id === threadId
+              ? {
+                  ...thread,
+                  hasReport: false,
+                  updated: 'Now',
+                  excerpt: text,
+                  messages: [...thread.messages, { sender: 'pt', text, ts: Date.now() }],
+                }
+              : thread,
+          )
+        : [
+            ...prev,
+            {
+              id: threadId,
+              patientId: threadId.replace(/^thread_/, ''),
+              patientName: visiblePatients.find((patient) => reportThreadId(patient.id) === threadId)?.name || 'Unknown patient',
               updated: 'Now',
               excerpt: text,
-              messages: [...thread.messages, { sender: 'pt', text, ts: Date.now() }],
-            }
-          : thread,
-      ),
+              hasReport: false,
+              messages: [{ sender: 'pt', text, ts: Date.now() }],
+            },
+          ],
     )
   }
 
@@ -304,7 +409,7 @@ export default function RehabPro() {
             updated: 'Now',
             excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
             hasReport: true,
-            messages: [{ sender: 'patient', text: reportMessage, ts: timestamp }],
+            messages: [{ sender: 'patient', text: reportMessage, ts: timestamp, reportId: report.id }],
           },
         ]
       }
@@ -316,7 +421,7 @@ export default function RehabPro() {
               updated: 'Now',
               excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
               hasReport: true,
-              messages: [...thread.messages, { sender: 'patient', text: reportMessage, ts: timestamp }],
+              messages: [...thread.messages, { sender: 'patient', text: reportMessage, ts: timestamp, reportId: report.id }],
             }
           : thread,
       )
@@ -586,7 +691,7 @@ export default function RehabPro() {
         selectedPatientId={selectedPatientId}
         reports={reports}
         checkIns={checkIns}
-        threads={ptThreads}
+        threads={reportBackedThreads}
         activeThreadId={activeThreadId}
         exerciseNames={EXERCISE_NAMES}
         onSelectPatient={handleSelectPortalPatient}
@@ -680,7 +785,7 @@ export default function RehabPro() {
           {tab === 'home' && (isIntakePatient ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />)}
           {tab === 'train' && (isIntakePatient && !intake.completed ? <IntakeView intake={intake} onChange={setIntake} onComplete={handleCompleteIntake} onOpenPlan={() => setTab('train')} /> : <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />)}
           {tab === 'progress' && <ProgressView patientProfile={progressPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} checkIns={checkIns.filter((checkIn) => checkIn.patientId === progressPatientId && checkIn.type === 'session')} />}
-          {tab === 'pt' && (patientUser ? <PTChat patientId={patientUser.patientId} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={ptThreads.find((thread) => thread.patientId === patientUser.patientId)} onSendPtMessage={handleSendPatientMessage} /> : null)}
+          {tab === 'pt' && (patientUser ? <PTChat patientId={patientUser.patientId} patientContext={{ injury: currentPatientProfile?.injury, stage: currentPatientProfile?.stage, goal: currentPatientProfile?.goal, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={reportBackedThreads.find((thread) => thread.patientId === patientUser.patientId)} onSendPtMessage={handleSendPatientMessage} /> : null)}
           {tab === 'report' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} onOpenMessages={() => setTab('pt')} />}
         </div>
 

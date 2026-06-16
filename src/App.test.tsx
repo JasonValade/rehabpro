@@ -51,4 +51,23 @@ describe('App', () => {
     await user.click(screen.getByRole('button', { name: /^patients$/i }))
     expect(screen.getByRole('heading', { name: /^patients$/i })).toBeInTheDocument()
   })
+
+  it('shows patient reports in the PT messages inbox and thread', async () => {
+    const user = userEvent.setup()
+
+    render(<App />)
+    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
+
+    await user.click(screen.getByRole('button', { name: /^messages$/i }))
+    await user.click(screen.getByRole('button', { name: /Sara K\.[\s\S]*Bulgarian Split Squat/i }))
+
+    expect(screen.getByRole('tab', { name: /messages/i })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByText(/Symptom report/i)).toBeInTheDocument()
+    expect(screen.getByText('Bulgarian Split Squat')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /mark as read/i }))
+
+    expect(screen.getByText('Reviewed')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /mark as read/i })).not.toBeInTheDocument()
+  })
 })
