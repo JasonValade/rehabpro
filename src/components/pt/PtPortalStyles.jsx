@@ -40,9 +40,17 @@ export function PtPortalStyles() {
         .pt-layout {
           max-width: 1440px;
           margin: 0 auto;
+          width: 100%;
           display: grid;
           grid-template-columns: 260px minmax(0, 1fr);
           gap: 18px;
+          min-width: 0;
+        }
+        .pt-content {
+          display: grid;
+          gap: 18px;
+          min-width: 0;
+          overflow: hidden;
         }
         .pt-sidebar {
           position: sticky;
@@ -133,50 +141,91 @@ export function PtPortalStyles() {
         .pt-dashboard-side-stack {
           display: grid;
           gap: 14px;
+          min-width: 0;
+        }
+        .pt-dashboard-screen {
+          display: grid;
+          grid-template-rows: auto minmax(0, 1fr);
+          gap: 12px;
+          min-height: 0;
+          min-width: 0;
+        }
+        .pt-dashboard-screen .pt-header {
+          padding: 16px 18px;
+        }
+        .pt-dashboard-screen .pt-header h1 {
+          font-size: 40px !important;
+        }
+        .pt-dashboard-screen .pt-header > div:first-child > div:last-child {
+          max-width: 620px;
+          font-size: 13px !important;
+          line-height: 1.35;
+          margin-top: 5px !important;
+        }
+        .pt-dashboard-screen .pt-panel {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          padding: 14px;
         }
         .pt-dashboard-focus-grid {
           display: grid;
-          grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
-          gap: 14px;
+          grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr);
+          gap: 12px;
           align-items: start;
+          min-height: 0;
+          min-width: 0;
         }
         .pt-dashboard-summary {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 10px;
+          gap: 8px;
+        }
+        .pt-dashboard-screen .pt-metric {
+          padding: 12px;
+        }
+        .pt-dashboard-screen .pt-metric > div:last-child {
+          font-size: 28px !important;
+          margin-top: 6px !important;
         }
         .pt-dashboard-section-head {
           display: flex;
           justify-content: space-between;
           align-items: start;
-          gap: 14px;
-          margin-bottom: 14px;
+          gap: 10px;
+          margin-bottom: 10px;
+          min-width: 0;
+        }
+        .pt-dashboard-section-head > div:first-child {
+          min-width: 0;
         }
         .pt-dashboard-section-head > div:first-child > div:last-child {
           font-family: 'Bebas Neue', cursive;
-          font-size: 26px;
+          font-size: 23px;
           color: ${C.bone};
           line-height: 1;
-          margin-top: 6px;
+          margin-top: 5px;
         }
         .pt-dashboard-priority-list,
         .pt-dashboard-compact-list,
         .pt-dashboard-gate-list {
           display: grid;
-          gap: 10px;
+          gap: 8px;
+          min-height: 0;
         }
         .pt-dashboard-action-card {
           width: 100%;
           border: 1px solid ${C.rim};
           background: ${C.deep};
           border-radius: 8px;
-          padding: 16px 18px;
+          padding: 13px 14px;
           color: ${C.bone};
           display: grid;
-          gap: 12px;
+          gap: 10px;
+          min-width: 0;
           contain: layout paint style;
           content-visibility: auto;
-          contain-intrinsic-size: auto 180px;
+          contain-intrinsic-size: auto 150px;
         }
         .pt-session-prep-list {
           display: grid;
@@ -291,23 +340,28 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-action-row {
           border-top: 1px solid ${C.rim};
-          padding-top: 12px;
+          padding-top: 10px;
           display: grid;
           grid-template-columns: minmax(0, 1fr) auto;
           align-items: end;
-          gap: 14px;
+          gap: 10px;
+          min-width: 0;
+        }
+        .pt-dashboard-action-row > div:first-child {
+          min-width: 0;
         }
         .pt-dashboard-action-row > div:first-child > div:last-child {
           color: ${C.bone};
-          font-size: 13px;
-          line-height: 1.45;
-          margin-top: 6px;
+          font-size: 12px;
+          line-height: 1.35;
+          margin-top: 5px;
         }
         .pt-dashboard-actions {
           display: flex;
           flex-wrap: wrap;
           justify-content: flex-end;
           gap: 8px;
+          min-width: 0;
         }
         .pt-dashboard-actions button,
         .pt-session-prep-actions button,
@@ -322,7 +376,8 @@ export function PtPortalStyles() {
           text-transform: uppercase;
         }
         .pt-dashboard-actions button {
-          padding: 10px 11px;
+          padding: 8px 9px;
+          min-width: 0;
         }
         .pt-session-prep-actions button {
           padding: 10px 11px;
@@ -371,11 +426,12 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-compact-row {
           width: 100%;
-          padding: 13px 14px;
+          min-width: 0;
+          padding: 11px 12px;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 14px;
+          gap: 10px;
           text-align: left;
         }
         .pt-dashboard-compact-row > div:first-child {
@@ -383,7 +439,7 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-compact-row > div:first-child > div {
           font-family: 'Bebas Neue', cursive;
-          font-size: 20px;
+          font-size: 18px;
           color: ${C.bone};
           line-height: 1;
           letter-spacing: 0;
@@ -391,11 +447,11 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-compact-row span {
           display: block;
-          margin-top: 6px;
+          margin-top: 5px;
           color: ${C.muted};
           font-family: 'DM Sans', sans-serif;
-          font-size: 12px;
-          line-height: 1.4;
+          font-size: 11px;
+          line-height: 1.3;
           letter-spacing: 0;
           text-transform: none;
           overflow: hidden;
@@ -406,9 +462,9 @@ export function PtPortalStyles() {
           border: 1px solid ${C.rim};
           background: ${C.deep};
           border-radius: 8px;
-          padding: 14px;
+          padding: 11px 12px;
           display: grid;
-          gap: 12px;
+          gap: 9px;
           min-width: 0;
         }
         .pt-dashboard-gate-head {
@@ -416,17 +472,18 @@ export function PtPortalStyles() {
           justify-content: space-between;
           align-items: start;
           gap: 10px;
+          min-width: 0;
         }
         .pt-dashboard-gate-head > div:first-child {
           min-width: 0;
           font-family: 'Bebas Neue', cursive;
-          font-size: 20px;
+          font-size: 18px;
           color: ${C.bone};
           line-height: 1;
         }
         .pt-dashboard-gate-head span {
           display: block;
-          margin-top: 6px;
+          margin-top: 5px;
           color: ${C.muted};
           font-family: 'Fira Code', monospace;
           font-size: 9px;
@@ -436,31 +493,35 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-gate-title {
           color: ${C.bone};
-          font-size: 13px;
-          line-height: 1.4;
-          margin-top: 10px;
+          font-size: 12px;
+          line-height: 1.3;
+          margin-top: 7px;
         }
         .pt-dashboard-gate-signal {
           color: ${C.muted};
-          font-size: 12px;
-          line-height: 1.4;
-          margin-top: 4px;
+          font-size: 11px;
+          line-height: 1.3;
+          margin-top: 3px;
         }
         .pt-dashboard-gate-actions {
           display: grid;
           grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 7px;
+          gap: 6px;
+          min-width: 0;
         }
         .pt-dashboard-gate-actions button {
           border: 1px solid ${C.rim};
           border-radius: 7px;
           background: ${C.panel};
           color: ${C.bone};
-          padding: 9px 8px;
+          padding: 7px 7px;
           font-family: 'Fira Code', monospace;
           font-size: 9px;
           letter-spacing: 0.07em;
           text-transform: uppercase;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         .pt-dashboard-gate-actions .pt-milestone-pass-button,
         .pt-dashboard-gate-actions .pt-milestone-pass-button-active {
@@ -1570,6 +1631,68 @@ export function PtPortalStyles() {
           font-size: 9px;
           letter-spacing: 0.04em;
           text-transform: uppercase;
+        }
+        @media (min-width: 1181px) {
+          .pt-shell {
+            padding: 16px;
+          }
+          .pt-layout {
+            max-width: none;
+            grid-template-columns: 232px minmax(0, 1fr);
+            gap: 12px;
+            width: 100%;
+            overflow: hidden;
+          }
+          .pt-sidebar {
+            top: 16px;
+            height: calc(100vh - 32px);
+            padding: 14px;
+            gap: 12px;
+          }
+          .pt-sidebar-button {
+            padding: 9px 10px;
+          }
+          .pt-sidebar-actions {
+            gap: 6px !important;
+          }
+          .pt-sidebar-actions > div {
+            padding: 10px !important;
+          }
+          .pt-sidebar-actions button {
+            padding: 9px 10px !important;
+          }
+          .pt-dashboard-screen {
+            height: calc(100vh - 32px);
+            overflow: hidden;
+          }
+          .pt-dashboard-screen .pt-header {
+            align-items: center;
+          }
+          .pt-dashboard-focus-grid {
+            height: 100%;
+            overflow: hidden;
+            align-items: stretch;
+          }
+          .pt-dashboard-main-stack,
+          .pt-dashboard-side-stack {
+            min-height: 0;
+            gap: 12px;
+          }
+          .pt-dashboard-main-stack {
+            grid-template-rows: auto minmax(0, 1fr);
+          }
+          .pt-dashboard-side-stack {
+            grid-template-rows: minmax(0, 1fr) auto;
+          }
+          .pt-dashboard-main-stack > .pt-panel:last-child,
+          .pt-dashboard-side-stack > .pt-panel:first-child {
+            overflow: hidden;
+          }
+          .pt-dashboard-main-stack > .pt-panel:last-child .pt-dashboard-priority-list,
+          .pt-dashboard-side-stack > .pt-panel:first-child .pt-dashboard-gate-list {
+            overflow: auto;
+            padding-right: 2px;
+          }
         }
         @media (max-width: 1180px) {
           .pt-layout {

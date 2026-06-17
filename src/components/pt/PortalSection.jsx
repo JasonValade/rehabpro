@@ -537,7 +537,7 @@ export function PortalSection({
   }
 
   return (
-    <>
+    <div className="pt-dashboard-screen">
       <SectionHeader
         eyebrow="PT workday"
         title="Today"
@@ -630,6 +630,6 @@ export function PortalSection({
           </Panel>
         </div>
       </div>
-    </>
+    </div>
   );
 }

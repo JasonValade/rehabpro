@@ -134,7 +134,7 @@ export function PtPortalView({
             </div>
           </aside>
 
-          <main style={{ display: "grid", gap: 18 }}>
+          <main className="pt-content">
             {isPatientListOnly ? (
               <PortalSection
                 section={activeSidebarSection}

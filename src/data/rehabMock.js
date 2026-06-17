@@ -127,10 +127,10 @@ export const PATIENT_DEMO_PROFILES = {
 };
 
 export const LOCKED_EXERCISES = [
-  { name: "Box Jumps", unlocksAt: "120° Flexion", color: "#ffb800" },
-  { name: "Lateral Shuffle", unlocksAt: "Pain-free Jog", color: "#ffb800" },
-  { name: "Jump Rope", unlocksAt: "Lateral Cuts", color: "#ff2d2d" },
-  { name: "Full Court Runs", unlocksAt: "Jump Landing", color: "#ff2d2d" },
+  { name: "Box Jumps", unlocksAt: "120° Flexion", color: "#fbbf24" },
+  { name: "Lateral Shuffle", unlocksAt: "Pain-free Jog", color: "#fbbf24" },
+  { name: "Jump Rope", unlocksAt: "Lateral Cuts", color: "#f87171" },
+  { name: "Full Court Runs", unlocksAt: "Jump Landing", color: "#f87171" },
 ];
 
 export const PT_MSG = {
@@ -150,7 +150,7 @@ export const PT_PATIENTS = [
     status: "At home",
     profile: "Competitive basketball athlete",
     avatar: "JV",
-    color: "#c8ff00",
+    color: "#2dd4bf",
     assignedExercises: ["Terminal Knee Extension", "Wall Slides", "Straight Leg Raise", "Lateral Band Walks", "Bilateral Calf Raises"],
     alert: true,
   },
@@ -164,7 +164,7 @@ export const PT_PATIENTS = [
     status: "Remote",
     profile: "Weekend pickleball player",
     avatar: "SK",
-    color: "#38beff",
+    color: "#60a5fa",
     assignedExercises: ["Step-Ups", "Glute Bridge", "Spanish Squat - Isometric"],
     alert: false,
   },
@@ -178,7 +178,7 @@ export const PT_PATIENTS = [
     status: "At home",
     profile: "Recreational soccer",
     avatar: "MT",
-    color: "#f5c842",
+    color: "#fbbf24",
     assignedExercises: ["Heel Slides", "Ankle Pumps", "Seated Calf Raise"],
     alert: false,
   },
@@ -192,7 +192,7 @@ export const PT_PATIENTS = [
     status: "Pre-surgery",
     profile: "Soccer recruit",
     avatar: "ER",
-    color: "#a78bfa",
+    color: "#c4b5fd",
     assignedExercises: ["Quad Sets", "Glute Bridge", "Single-Leg Balance"],
     alert: true,
   },

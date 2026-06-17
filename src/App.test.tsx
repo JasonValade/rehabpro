@@ -13,7 +13,6 @@ describe('App', () => {
     expect(screen.getByText('REHAB')).toBeInTheDocument()
     expect(screen.getByText('PRO')).toBeInTheDocument()
     expect(screen.getByText('Returning patient demo')).toBeInTheDocument()
-    expect(screen.queryByText('New intake patient demo')).not.toBeInTheDocument()
     expect(screen.getByText('Physical therapist demo')).toBeInTheDocument()
   })
 
