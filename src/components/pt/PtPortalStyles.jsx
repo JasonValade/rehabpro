@@ -11,6 +11,17 @@ export function PtPortalStyles() {
         button, input { font: inherit; outline: none; }
         button:focus-visible, input:focus-visible { outline: 2px solid ${C.lime}; outline-offset: 3px; }
         button { cursor: pointer; }
+        .pt-sr-only {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          padding: 0;
+          margin: -1px;
+          overflow: hidden;
+          clip: rect(0, 0, 0, 0);
+          white-space: nowrap;
+          border: 0;
+        }
         .pt-panel {
           background: ${C.panel};
           border: 1px solid ${C.rim};

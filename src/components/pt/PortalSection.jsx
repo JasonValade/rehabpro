@@ -544,6 +544,7 @@ export function PortalSection({
         detail="Start with the patients that need attention, then clear the next gates when the queue is quiet."
         tag={<Tag label={`${priorityActions.length} priority / ${pendingMilestoneCount} gates`} color={priorityActions.length ? C.red : pendingMilestoneCount ? C.amber : C.lime} />}
       />
+      <h2 className="pt-sr-only">Dashboard</h2>
       <div className="pt-dashboard-focus-grid">
         <div className="pt-dashboard-main-stack">
           <Panel>
