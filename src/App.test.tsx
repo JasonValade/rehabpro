@@ -46,6 +46,8 @@ describe('App', () => {
     await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark sara k\.'s priority item reviewed/i }))
 
     expect(within(priorityQueue as HTMLElement).queryByText(/Bulgarian Split Squat: pain 3\/5/i)).not.toBeInTheDocument()
+    expect(within(priorityQueue as HTMLElement).getByText(/Behind expected track/i)).toBeInTheDocument()
+    expect(within(priorityQueue as HTMLElement).queryByText(/Milestone due/i)).not.toBeInTheDocument()
     expect(within(priorityQueue as HTMLElement).getAllByRole('button', { name: /mark .* priority item reviewed/i })).toHaveLength(reviewButtonsBefore.length)
 
     await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark mike t\.'s priority item reviewed/i }))

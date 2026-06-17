@@ -803,6 +803,11 @@ export function PtPortalStyles() {
           gap: 10px;
           margin-top: 18px;
         }
+        .pt-patient-workspace {
+          display: grid;
+          gap: 18px;
+          min-width: 0;
+        }
         .pt-overview-grid {
           display: grid;
           grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.9fr) minmax(220px, 0.7fr);
@@ -902,6 +907,30 @@ export function PtPortalStyles() {
         }
         .pt-tab-content > .pt-panel {
           min-height: 100%;
+        }
+        .pt-tab-content-message {
+          min-height: 0;
+        }
+        .pt-tab-content-message > .pt-panel {
+          min-height: 0;
+          overflow: hidden;
+        }
+        .pt-message-list {
+          flex: 1;
+          min-height: 0;
+          display: grid;
+          gap: 12px;
+          align-content: start;
+          overflow-y: auto;
+          padding: 2px 4px 2px 0;
+        }
+        .pt-message-composer {
+          flex-shrink: 0;
+          display: flex;
+          gap: 8px;
+          margin-top: 16px;
+          padding-top: 14px;
+          border-top: 1px solid ${C.rim};
         }
         .pt-note-grid,
         .pt-plan-grid {
@@ -1665,6 +1694,11 @@ export function PtPortalStyles() {
             height: calc(100vh - 32px);
             overflow: hidden;
           }
+          .pt-patient-workspace-messages {
+            height: calc(100vh - 48px);
+            grid-template-rows: auto auto minmax(0, 1fr);
+            overflow: hidden;
+          }
           .pt-dashboard-screen .pt-header {
             align-items: center;
           }
@@ -1828,6 +1862,10 @@ export function PtPortalStyles() {
           }
           .pt-tab-content {
             min-height: 460px;
+          }
+          .pt-message-composer {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
           }
         }
         ::-webkit-scrollbar { width: 4px; }

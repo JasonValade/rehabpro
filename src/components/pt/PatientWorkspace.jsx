@@ -310,7 +310,7 @@ export function PatientWorkspace({
   const activePlanSection = weeklyPlanSections.find((section) => section.id === activePlanSectionId) || weeklyPlanSections[0];
 
   return (
-    <div style={{ display: "grid", gap: 18 }}>
+    <div className={`pt-patient-workspace${activeTab === "messages" ? " pt-patient-workspace-messages" : ""}`}>
       <Panel>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 18, alignItems: "start", flexWrap: "wrap" }}>
           <div style={{ display: "flex", gap: 16, alignItems: "center", minWidth: 0 }}>
@@ -360,7 +360,7 @@ export function PatientWorkspace({
         ))}
       </div>
 
-      <div className="pt-tab-content">
+      <div className={`pt-tab-content${activeTab === "messages" ? " pt-tab-content-message" : ""}`}>
         {activeTab === "overview" && (
           <Panel style={{ minHeight: "100%" }}>
             <div className="pt-overview-dashboard">

@@ -38,6 +38,26 @@ function hasWorseningSymptoms(patientCheckIns) {
   return Number(latest.pain || 0) > Number(previous.pain || 0) || Number(latest.swelling || 0) > Number(previous.swelling || 0);
 }
 
+function getExpectedCompletionForWeek(week) {
+  if (week >= 12) return 85;
+  if (week >= 6) return 80;
+  return 70;
+}
+
+function getTrackStatus(patient, latestCheckIn) {
+  const completion = Number(latestCheckIn?.completion);
+  if (!Number.isFinite(completion) || patient.week < 4) return null;
+
+  const expectedCompletion = getExpectedCompletionForWeek(Number(patient.week || 0));
+  if (completion >= expectedCompletion) return null;
+
+  return {
+    completion,
+    expectedCompletion,
+    gap: expectedCompletion - completion,
+  };
+}
+
 function getNextPatientMilestone(patient) {
   if (patient.injury?.toLowerCase().includes("achilles")) {
     return patient.week < 8
@@ -58,7 +78,6 @@ function getNextPatientMilestone(patient) {
 
 function getPatientAction(patient, reports, latestCheckIn, patientCheckIns, thread) {
   const latestReport = getLatestPatientReport(reports, patient.id);
-  const nextMilestone = getNextPatientMilestone(patient);
   const unreadReport = reports
     .filter((report) => report.patientId === patient.id && !report.ptRead)
     .sort((a, b) => b.ts - a.ts)[0];
@@ -71,7 +90,8 @@ function getPatientAction(patient, reports, latestCheckIn, patientCheckIns, thre
   const planGap = patient.assignedExercises.length < 3;
   const messageNeedingReply = getLatestMessageNeedingReply(thread);
   const worseningSymptoms = hasWorseningSymptoms(patientCheckIns);
-  const milestoneDue = !unreadReport && patient.week >= Math.max(0, Number(nextMilestone.week || patient.week) - 1);
+  const trackStatus = getTrackStatus(patient, latestCheckIn);
+  const behindTrack = !unreadReport && !highCheckIn && trackStatus && !lowCompletion;
   const readyToProgress = !unreadReport && !highCheckIn && Number.isFinite(completion) && completion >= 85 && patient.assignedExercises.length >= 3;
 
   const candidates = [
@@ -110,17 +130,6 @@ function getPatientAction(patient, reports, latestCheckIn, patientCheckIns, thre
       note: messageNeedingReply.text,
       ts: messageNeedingReply.ts,
     },
-    milestoneDue && {
-      id: `${patient.id}:milestone:${nextMilestone.label}`,
-      score: 60,
-      tab: "overview",
-      label: "Milestone check",
-      color: C.lime,
-      title: "Milestone due",
-      detail: `${nextMilestone.label} readiness screen`,
-      note: `Week ${patient.week} lines up with the ${nextMilestone.label} milestone. Check symptoms and movement quality before progressing.`,
-      ts: latestCheckIn?.ts || latestReport?.ts || 0,
-    },
     worseningSymptoms && {
       id: `${patient.id}:worsening:${latestCheckIn?.id || latestCheckIn?.ts || "latest"}`,
       score: 55,
@@ -141,6 +150,17 @@ function getPatientAction(patient, reports, latestCheckIn, patientCheckIns, thre
       title: "Symptoms trending high",
       detail: `Latest check-in: pain ${latestCheckIn.pain}/10, swelling ${latestCheckIn.swelling}/10`,
       note: latestCheckIn.concern,
+      ts: latestCheckIn.ts,
+    },
+    behindTrack && {
+      id: `${patient.id}:behind-track:${latestCheckIn.id || latestCheckIn.ts}`,
+      score: 40,
+      tab: "history",
+      label: "Behind track",
+      color: C.amber,
+      title: "Behind expected track",
+      detail: `Week ${patient.week}: ${trackStatus.completion}% complete, target ${trackStatus.expectedCompletion}%`,
+      note: latestCheckIn.concern || `Latest session is ${trackStatus.gap} points below the expected weekly completion target.`,
       ts: latestCheckIn.ts,
     },
     lowCompletion && {
@@ -569,7 +589,7 @@ export function PortalSection({
                   <DashboardActionCard key={patient.id} patient={patient} action={action} onOpenPatient={onOpenPatient} onMarkPriorityActionReviewed={onMarkPriorityActionReviewed} />
                 ))
               ) : (
-                <EmptyState title="Queue clear" message="No reports, replies, adherence dips, stale check-ins, or progression candidates need action right now." />
+                <EmptyState title="Queue clear" message="No reports, replies, adherence dips, behind-track patients, or stale check-ins need action right now." />
               )}
             </div>
           </Panel>

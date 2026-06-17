@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { C } from "../../constants/colors";
 import { parseSymptomReportMessage } from "../../utils/reportChat";
 import { SymptomReportCard } from "../ui/SymptomReportCard";
@@ -7,6 +7,15 @@ import { EmptyState, Label, Panel } from "./ptPortalShared";
 
 export function MessagePanel({ thread, reports, onSendMessage, onMarkReportReviewed }) {
   const [draft, setDraft] = useState("");
+  const messageListRef = useRef(null);
+  const messageCount = thread?.messages.length || 0;
+
+  useEffect(() => {
+    const messageList = messageListRef.current;
+    if (!messageList) return;
+
+    messageList.scrollTop = messageList.scrollHeight;
+  }, [thread?.id, messageCount]);
 
   const handleSend = () => {
     const message = draft.trim();
@@ -16,7 +25,7 @@ export function MessagePanel({ thread, reports, onSendMessage, onMarkReportRevie
   };
 
   return (
-    <Panel style={{ minHeight: 420, display: "flex", flexDirection: "column" }}>
+    <Panel style={{ minHeight: 0, height: "100%", display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", marginBottom: 16 }}>
         <div>
           <Label color={C.lime}>Messages</Label>
@@ -24,7 +33,7 @@ export function MessagePanel({ thread, reports, onSendMessage, onMarkReportRevie
         </div>
         {thread?.hasReport ? <Tag label="Needs review" color={C.red} /> : thread ? <Tag label="Conversation" color={C.blue} /> : null}
       </div>
-      <div style={{ flex: 1, display: "grid", gap: 12, alignContent: "start", maxHeight: 380, overflowY: "auto", padding: "2px 4px 2px 0" }}>
+      <div className="pt-message-list" ref={messageListRef}>
         {thread ? (
           thread.messages.map((message, index) => {
             const report = parseSymptomReportMessage(message.text);
@@ -51,7 +60,7 @@ export function MessagePanel({ thread, reports, onSendMessage, onMarkReportRevie
           <EmptyState title="No thread selected" message="Choose a patient from the caseload to open their conversation." />
         )}
       </div>
-      <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.rim}` }}>
+      <div className="pt-message-composer">
         <input
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
