@@ -256,79 +256,41 @@ function getMilestoneCheckId(patient, milestone) {
   return `${patient.id}:milestone:${milestone.label}`;
 }
 
-function getMilestoneChecks(patient, milestone, latestReport) {
-  const hasOpenReport = latestReport && !latestReport.ptRead;
-  if (hasOpenReport) {
-    return ["Review open symptom report", "Confirm pain and swelling are acceptable", "Decide pass/fail after movement screen"];
-  }
-
-  if (patient.week >= Number(milestone.week || patient.week)) {
-    return [`Test ${milestone.label}`, "Confirm movement quality", "Record pass/fail decision"];
-  }
-
-  return [`Preview ${milestone.label}`, "Confirm current phase tolerance", "Defer pass/fail until target week if needed"];
-}
-
-function MilestoneCheckCard({ patient, milestone, latestReport, latestCheckIn, decision, onOpenPatient, onSetMilestoneDecision }) {
+function CompactMilestoneCheck({ patient, milestone, latestReport, latestCheckIn, decision, onOpenPatient, onSetMilestoneDecision }) {
   const checkId = getMilestoneCheckId(patient, milestone);
   const hasOpenReport = latestReport && !latestReport.ptRead;
-  const hasCheckIn = Boolean(latestCheckIn);
   const due = patient.week >= Number(milestone.week || patient.week);
   const status = decision?.outcome || "pending";
   const statusColor = status === "passed" ? C.lime : status === "failed" ? C.red : hasOpenReport ? C.amber : due ? C.lime : C.blue;
   const statusLabel = status === "passed" ? "Passed" : status === "failed" ? "Failed" : hasOpenReport ? "Hold" : due ? "Due" : "Upcoming";
-  const checks = getMilestoneChecks(patient, milestone, latestReport);
+  const signal = latestReport
+    ? `Report pain ${latestReport.pain}/5 / ${relativeTime(latestReport.ts)}`
+    : latestCheckIn
+      ? `${latestCheckIn.completion ?? "-"}% complete / ${relativeTime(latestCheckIn.ts)}`
+      : `${patient.assignedExercises.length} assigned exercises`;
 
   return (
-    <article className="pt-session-prep-card">
-      <div className="pt-session-prep-head">
-        <div style={{ minWidth: 0 }}>
-          <div className="pt-session-prep-patient">{patient.name}</div>
-          <div className="pt-session-prep-meta">
-            {patient.injury} / Week {patient.week}
+    <article className="pt-dashboard-gate-row">
+      <div style={{ minWidth: 0 }}>
+        <div className="pt-dashboard-gate-head">
+          <div>
+            {patient.name}
+            <span>
+              {patient.injury} / Week {patient.week}
+            </span>
           </div>
+          <Tag label={statusLabel} color={statusColor} />
         </div>
-        <Tag label={statusLabel} color={statusColor} />
+        <div className="pt-dashboard-gate-title">{milestone.label}</div>
+        <div className="pt-dashboard-gate-signal">{signal}</div>
       </div>
-
-      <div className="pt-session-prep-grid">
-        <div>
-          <Label color={statusColor}>Milestone</Label>
-          <div className="pt-session-prep-value">{milestone.label}</div>
-          <span>Target week {milestone.week}</span>
-        </div>
-        <div>
-          <Label color={statusColor}>Latest signal</Label>
-          <div className="pt-session-prep-value">
-            {latestReport ? `Pain ${latestReport.pain}/5` : hasCheckIn ? `${latestCheckIn.completion ?? "-"}% complete` : `${patient.assignedExercises.length} exercises`}
-          </div>
-          <span>{latestReport ? `${latestReport.exercise} / ${relativeTime(latestReport.ts)}` : hasCheckIn ? `Last check-in ${relativeTime(latestCheckIn.ts)}` : "No recent submission"}</span>
-        </div>
-        <div>
-          <Label color={statusColor}>Check criteria</Label>
-          <ul className="pt-session-prep-checklist">
-            {checks.map((check) => (
-              <li key={check}>{check}</li>
-            ))}
-          </ul>
-        </div>
-      </div>
-
-      {decision ? (
-        <div className="pt-session-prep-note">
-          Marked {status} {relativeTime(decision.ts)}. Use the buttons to revise the decision if the screen changes.
-        </div>
-      ) : (
-        <div className="pt-session-prep-note">
-          {hasOpenReport ? "Open symptom report should be considered before clearing this milestone." : due ? "This milestone is ready for a PT pass/fail screen." : "This milestone is not due yet, but can be screened early if clinically appropriate."}
-        </div>
-      )}
-
-      <div className="pt-session-prep-actions">
+      <div className="pt-dashboard-gate-actions">
+        <button type="button" onClick={() => onOpenPatient(patient.id, "history")}>
+          Screen
+        </button>
         <button
           type="button"
           className={status === "passed" ? "pt-milestone-pass-button-active" : "pt-milestone-pass-button"}
-          aria-label={`Pass ${patient.name}'s ${milestone.label} milestone`}
           onClick={() => onSetMilestoneDecision(checkId, "passed")}
         >
           Pass
@@ -336,16 +298,9 @@ function MilestoneCheckCard({ patient, milestone, latestReport, latestCheckIn, d
         <button
           type="button"
           className={status === "failed" ? "pt-milestone-fail-button-active" : "pt-milestone-fail-button"}
-          aria-label={`Fail ${patient.name}'s ${milestone.label} milestone`}
           onClick={() => onSetMilestoneDecision(checkId, "failed")}
         >
           Fail
-        </button>
-        <button type="button" onClick={() => onOpenPatient(patient.id, "history")}>
-          History
-        </button>
-        <button type="button" onClick={() => onOpenPatient(patient.id, "plan")}>
-          Plan
         </button>
       </div>
     </article>
@@ -446,7 +401,7 @@ export function PortalSection({
     () => (section === "dashboard" ? visiblePatientActions.filter(({ action }) => action.score === 20) : []),
     [section, visiblePatientActions],
   );
-  const dashboardActions = priorityActions.length ? priorityActions : readyActions.slice(0, 3);
+  const dashboardActions = priorityActions.length ? priorityActions.slice(0, 2) : readyActions.slice(0, 2);
   const milestoneChecks = useMemo(
     () =>
       section === "dashboard"
@@ -470,9 +425,13 @@ export function PortalSection({
     [latestCheckInsByPatient, latestReportByPatient, milestoneDecisions, patients, section],
   );
   const pendingMilestoneCount = useMemo(() => milestoneChecks.filter((check) => !check.decision).length, [milestoneChecks]);
+  const dashboardMilestoneChecks = useMemo(
+    () => (section === "dashboard" ? milestoneChecks.filter((check) => !check.decision).slice(0, 3) : []),
+    [milestoneChecks, section],
+  );
   const latestMessages = useMemo(
-    () => (needsMessageData ? sortedThreads.filter((thread) => !thread.hasReport).slice(0, 3) : []),
-    [needsMessageData, sortedThreads],
+    () => (needsMessageData ? sortedThreads.filter((thread) => !thread.hasReport).slice(0, section === "dashboard" ? 2 : 3) : []),
+    [needsMessageData, section, sortedThreads],
   );
 
   if (section === "messages") {
@@ -579,91 +538,94 @@ export function PortalSection({
     <>
       <SectionHeader
         eyebrow="PT workday"
-        title="Dashboard"
-        detail="Triage the caseload, clear progression gates, and jump into follow-up from one place."
+        title="Today"
+        detail="Start with the patients that need attention, then clear the next gates when the queue is quiet."
         tag={<Tag label={`${priorityActions.length} priority / ${pendingMilestoneCount} gates`} color={priorityActions.length ? C.red : pendingMilestoneCount ? C.amber : C.lime} />}
       />
-      <div className="pt-dashboard-grid">
-        <Panel>
-          <div className="pt-dashboard-summary">
-            <Metric label="Needs review" value={unreadReports.length} color={unreadReports.length ? C.red : C.lime} tone={unreadReports.length ? "danger" : "default"} />
-            <Metric label="New messages" value={latestMessages.length} color={C.blue} />
-            <Metric label="Gates pending" value={pendingMilestoneCount} color={pendingMilestoneCount ? C.amber : C.lime} />
-            <Metric label="Active" value={patients.length} color={C.bone} />
-          </div>
-        </Panel>
-
-        <Panel>
-          <div className="pt-dashboard-section-head">
-            <div>
-              <Label color={C.lime}>Priority queue</Label>
-              <div>Who needs attention first</div>
+      <div className="pt-dashboard-focus-grid">
+        <div className="pt-dashboard-main-stack">
+          <Panel>
+            <div className="pt-dashboard-summary">
+              <Metric label="Open reviews" value={unreadReports.length} color={unreadReports.length ? C.red : C.lime} tone={unreadReports.length ? "danger" : "default"} />
+              <Metric label="Replies" value={latestMessages.length} color={C.blue} />
+              <Metric label="Gates" value={pendingMilestoneCount} color={pendingMilestoneCount ? C.amber : C.lime} />
             </div>
-            <Tag label={priorityActions.length ? `${priorityActions.length} to review` : "Clear"} color={priorityActions.length ? C.red : C.lime} />
-          </div>
-          <div className="pt-dashboard-priority-list">
-            {dashboardActions.length > 0 ? (
-              dashboardActions.map(({ patient, action }) => (
-                <DashboardActionCard key={patient.id} patient={patient} action={action} onOpenPatient={onOpenPatient} onMarkPriorityActionReviewed={onMarkPriorityActionReviewed} />
-              ))
-            ) : (
-              <EmptyState title="Queue clear" message="No reports, replies, adherence dips, stale check-ins, or progression candidates need action right now." />
-            )}
-          </div>
-        </Panel>
+          </Panel>
 
-        <Panel>
-          <div className="pt-session-prep-board-head">
-            <div>
-              <Label color={C.lime}>Progression checks</Label>
-              <div>Pass / fail session gates</div>
+          <Panel>
+            <div className="pt-dashboard-section-head">
+              <div>
+                <Label color={C.lime}>Priority queue</Label>
+                <div>Next best action</div>
+              </div>
+              <Tag label={priorityActions.length ? `${priorityActions.length} open` : "Clear"} color={priorityActions.length ? C.red : C.lime} />
             </div>
-            <Tag label={`${pendingMilestoneCount} pending`} color={pendingMilestoneCount ? C.amber : C.lime} />
-          </div>
-          <div className="pt-session-prep-list">
-            {milestoneChecks.length > 0 ? (
-              milestoneChecks.map(({ patient, milestone, latestReport, latestCheckIn, decision }) => (
-                <MilestoneCheckCard
-                  key={getMilestoneCheckId(patient, milestone)}
-                  patient={patient}
-                  milestone={milestone}
-                  latestReport={latestReport}
-                  latestCheckIn={latestCheckIn}
-                  decision={decision}
-                  onOpenPatient={onOpenPatient}
-                  onSetMilestoneDecision={onSetMilestoneDecision}
-                />
-              ))
-            ) : (
-              <EmptyState title="No progression checks" message="Active patients will appear here when they have milestone gates to screen." />
-            )}
-          </div>
-        </Panel>
+            <div className="pt-dashboard-priority-list">
+              {dashboardActions.length > 0 ? (
+                dashboardActions.map(({ patient, action }) => (
+                  <DashboardActionCard key={patient.id} patient={patient} action={action} onOpenPatient={onOpenPatient} onMarkPriorityActionReviewed={onMarkPriorityActionReviewed} />
+                ))
+              ) : (
+                <EmptyState title="Queue clear" message="No reports, replies, adherence dips, stale check-ins, or progression candidates need action right now." />
+              )}
+            </div>
+          </Panel>
+        </div>
 
-        <Panel>
-          <div className="pt-dashboard-section-head">
-            <div>
-              <Label color={C.blue}>Recent conversations</Label>
-              <div>Questions and follow-up without open reports</div>
+        <div className="pt-dashboard-side-stack">
+          <Panel>
+            <div className="pt-dashboard-section-head">
+              <div>
+                <Label color={C.amber}>Progression checks</Label>
+                <div>Next gates</div>
+              </div>
+              <Tag label={`${pendingMilestoneCount} pending`} color={pendingMilestoneCount ? C.amber : C.lime} />
             </div>
-            <Tag label={`${threads.length} threads`} color={C.blue} />
-          </div>
-          <div className="pt-dashboard-compact-list">
-            {latestMessages.length > 0 ? (
-              latestMessages.map((thread) => (
-                <button key={thread.id} type="button" className="pt-dashboard-compact-row" onClick={() => onOpenPatient(thread.patientId, "messages")}>
-                  <div>
-                    <div>{thread.patientName}</div>
-                    <span>{thread.excerpt}</span>
-                  </div>
-                  <Tag label={thread.updated} color={C.blue} />
-                </button>
-              ))
-            ) : (
-              <EmptyState title="Inbox quiet" message="Open messages will appear here when they are not already part of the priority queue." />
-            )}
-          </div>
-        </Panel>
+            <div className="pt-dashboard-gate-list">
+              {dashboardMilestoneChecks.length > 0 ? (
+                dashboardMilestoneChecks.map(({ patient, milestone, latestReport, latestCheckIn, decision }) => (
+                  <CompactMilestoneCheck
+                    key={getMilestoneCheckId(patient, milestone)}
+                    patient={patient}
+                    milestone={milestone}
+                    latestReport={latestReport}
+                    latestCheckIn={latestCheckIn}
+                    decision={decision}
+                    onOpenPatient={onOpenPatient}
+                    onSetMilestoneDecision={onSetMilestoneDecision}
+                  />
+                ))
+              ) : (
+                <EmptyState title="No gates pending" message="Progression checks will appear here when a patient is ready for a screen." />
+              )}
+            </div>
+          </Panel>
+
+          <Panel>
+            <div className="pt-dashboard-section-head">
+              <div>
+                <Label color={C.blue}>Conversations</Label>
+                <div>Recent follow-up</div>
+              </div>
+              <Tag label={`${threads.length} threads`} color={C.blue} />
+            </div>
+            <div className="pt-dashboard-compact-list">
+              {latestMessages.length > 0 ? (
+                latestMessages.map((thread) => (
+                  <button key={thread.id} type="button" className="pt-dashboard-compact-row" onClick={() => onOpenPatient(thread.patientId, "messages")}>
+                    <div>
+                      <div>{thread.patientName}</div>
+                      <span>{thread.excerpt}</span>
+                    </div>
+                    <Tag label={thread.updated} color={C.blue} />
+                  </button>
+                ))
+              ) : (
+                <EmptyState title="Inbox quiet" message="Open messages will appear here when they are not already part of the priority queue." />
+              )}
+            </div>
+          </Panel>
+        </div>
       </div>
     </>
   );

@@ -117,13 +117,21 @@ export function PtPortalStyles() {
           background: ${C.limeDim};
           transform: translateY(-1px);
         }
-        .pt-dashboard-grid {
+        .pt-dashboard-grid,
+        .pt-dashboard-main-stack,
+        .pt-dashboard-side-stack {
           display: grid;
           gap: 14px;
         }
+        .pt-dashboard-focus-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.75fr);
+          gap: 14px;
+          align-items: start;
+        }
         .pt-dashboard-summary {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
         }
         .pt-dashboard-section-head {
@@ -141,7 +149,8 @@ export function PtPortalStyles() {
           margin-top: 6px;
         }
         .pt-dashboard-priority-list,
-        .pt-dashboard-compact-list {
+        .pt-dashboard-compact-list,
+        .pt-dashboard-gate-list {
           display: grid;
           gap: 10px;
         }
@@ -381,6 +390,87 @@ export function PtPortalStyles() {
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
+        }
+        .pt-dashboard-gate-row {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 14px;
+          display: grid;
+          gap: 12px;
+          min-width: 0;
+        }
+        .pt-dashboard-gate-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+          gap: 10px;
+        }
+        .pt-dashboard-gate-head > div:first-child {
+          min-width: 0;
+          font-family: 'Bebas Neue', cursive;
+          font-size: 20px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-dashboard-gate-head span {
+          display: block;
+          margin-top: 6px;
+          color: ${C.muted};
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          line-height: 1.35;
+        }
+        .pt-dashboard-gate-title {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.4;
+          margin-top: 10px;
+        }
+        .pt-dashboard-gate-signal {
+          color: ${C.muted};
+          font-size: 12px;
+          line-height: 1.4;
+          margin-top: 4px;
+        }
+        .pt-dashboard-gate-actions {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 7px;
+        }
+        .pt-dashboard-gate-actions button {
+          border: 1px solid ${C.rim};
+          border-radius: 7px;
+          background: ${C.panel};
+          color: ${C.bone};
+          padding: 9px 8px;
+          font-family: 'Fira Code', monospace;
+          font-size: 9px;
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+        }
+        .pt-dashboard-gate-actions .pt-milestone-pass-button,
+        .pt-dashboard-gate-actions .pt-milestone-pass-button-active {
+          border-color: ${C.limeMid};
+          color: ${C.lime};
+        }
+        .pt-dashboard-gate-actions .pt-milestone-pass-button-active {
+          background: ${C.limeDim};
+        }
+        .pt-dashboard-gate-actions .pt-milestone-fail-button,
+        .pt-dashboard-gate-actions .pt-milestone-fail-button-active {
+          border-color: ${C.red}55;
+          color: ${C.red};
+        }
+        .pt-dashboard-gate-actions .pt-milestone-fail-button-active {
+          background: ${C.redDim};
+        }
+        .pt-dashboard-gate-actions button:hover,
+        .pt-dashboard-gate-actions button:focus-visible {
+          border-color: ${C.limeMid};
+          background: ${C.limeDim};
         }
         .pt-patient-avatar {
           width: 48px;
@@ -1503,6 +1593,9 @@ export function PtPortalStyles() {
           .pt-overview-dashboard > :first-child {
             grid-column: auto;
           }
+          .pt-dashboard-focus-grid {
+            grid-template-columns: 1fr;
+          }
           .pt-dashboard-summary {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
@@ -1531,10 +1624,14 @@ export function PtPortalStyles() {
           .pt-plan-decision,
           .pt-weekly-grid,
           .pt-plan-summary,
+          .pt-dashboard-focus-grid,
           .pt-dashboard-summary,
           .pt-session-prep-grid,
           .pt-dashboard-action-row {
             grid-template-columns: 1fr;
+          }
+          .pt-dashboard-gate-actions {
+            grid-template-columns: repeat(3, minmax(72px, 1fr));
           }
           .pt-dashboard-actions {
             justify-content: flex-start;
