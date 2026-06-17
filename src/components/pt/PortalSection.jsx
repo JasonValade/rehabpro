@@ -291,6 +291,7 @@ function CompactMilestoneCheck({ patient, milestone, latestReport, latestCheckIn
         <button
           type="button"
           className={status === "passed" ? "pt-milestone-pass-button-active" : "pt-milestone-pass-button"}
+          aria-label={`Pass ${patient.name}'s ${milestone.label} milestone`}
           onClick={() => onSetMilestoneDecision(checkId, "passed")}
         >
           Pass
@@ -298,6 +299,7 @@ function CompactMilestoneCheck({ patient, milestone, latestReport, latestCheckIn
         <button
           type="button"
           className={status === "failed" ? "pt-milestone-fail-button-active" : "pt-milestone-fail-button"}
+          aria-label={`Fail ${patient.name}'s ${milestone.label} milestone`}
           onClick={() => onSetMilestoneDecision(checkId, "failed")}
         >
           Fail

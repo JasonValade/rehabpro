@@ -23,8 +23,8 @@ describe('App', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument()
-    expect(screen.getByText(/who needs attention first/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
+    expect(screen.getByText(/priority queue/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /active patients/i }))
     await user.click(screen.getByRole('button', { name: /jason v/i }))
     expect(screen.getAllByText('Jason V.').length).toBeGreaterThan(0)
@@ -38,40 +38,39 @@ describe('App', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    const priorityQueue = screen.getByText(/who needs attention first/i).closest('section')
+    const priorityQueue = screen.getByText(/priority queue/i).closest('section')
     expect(priorityQueue).not.toBeNull()
 
     const reviewButtonsBefore = within(priorityQueue as HTMLElement).getAllByRole('button', { name: /mark .* priority item reviewed/i })
-    expect(reviewButtonsBefore).toHaveLength(4)
+    expect(reviewButtonsBefore).toHaveLength(2)
 
-    await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark emma r\.'s priority item reviewed/i }))
+    await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark sara k\.'s priority item reviewed/i }))
 
-    expect(within(priorityQueue as HTMLElement).queryByText('Emma R.')).not.toBeInTheDocument()
-    expect(within(priorityQueue as HTMLElement).queryAllByRole('button', { name: /mark .* priority item reviewed/i })).toHaveLength(reviewButtonsBefore.length - 1)
+    expect(within(priorityQueue as HTMLElement).queryByText(/Bulgarian Split Squat: pain 3\/5/i)).not.toBeInTheDocument()
+    expect(within(priorityQueue as HTMLElement).getAllByRole('button', { name: /mark .* priority item reviewed/i })).toHaveLength(reviewButtonsBefore.length)
 
     await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark mike t\.'s priority item reviewed/i }))
 
     expect(within(priorityQueue as HTMLElement).queryByText(/high symptom report/i)).not.toBeInTheDocument()
   })
 
-  it('uses session prep for pass/fail milestone checks', async () => {
+  it('uses dashboard progression checks for pass/fail milestone decisions', async () => {
     const user = userEvent.setup()
 
     render(<App />)
     await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
-    await user.click(screen.getByRole('button', { name: /session prep/i }))
 
-    expect(screen.getByRole('heading', { name: /session prep/i })).toBeInTheDocument()
-    expect(screen.getByText(/pass \/ fail progression gates/i)).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
+    expect(screen.getByText(/progression checks/i)).toBeInTheDocument()
     expect(screen.getAllByText(/pain-free jog/i).length).toBeGreaterThan(0)
     expect(screen.getByText(/single-leg tendon loading/i)).toBeInTheDocument()
     expect(screen.queryByText(/no recent check-in/i)).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /pass jason v\.'s pain-free jog milestone/i }))
-    expect(screen.getByText('Passed')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /pass jason v\.'s pain-free jog milestone/i })).not.toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /fail sara k\.'s single-leg tendon loading milestone/i }))
-    expect(screen.getByText('Failed')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /fail sara k\.'s single-leg tendon loading milestone/i })).not.toBeInTheDocument()
   })
 
   it('lets the PT sidebar options open their portal sections', async () => {
@@ -80,8 +79,7 @@ describe('App', () => {
     render(<App />)
     await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    await user.click(screen.getByRole('button', { name: /session prep/i }))
-    expect(screen.getByRole('heading', { name: /session prep/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^messages$/i }))
     expect(screen.getByRole('heading', { name: /^messages$/i })).toBeInTheDocument()
@@ -96,7 +94,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /active patients/i })).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /^dashboard$/i }))
-    expect(screen.getByRole('heading', { name: /^dashboard$/i })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: /^today$/i })).toBeInTheDocument()
   })
 
   it('shows patient reports in the PT messages inbox and thread', async () => {
