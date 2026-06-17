@@ -16,6 +16,9 @@ export function PtPortalStyles() {
           border: 1px solid ${C.rim};
           border-radius: 8px;
           padding: 18px;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 360px;
         }
         .pt-shell {
           min-height: 100vh;
@@ -42,6 +45,7 @@ export function PtPortalStyles() {
           display: flex;
           flex-direction: column;
           gap: 18px;
+          contain: layout paint;
         }
         .pt-header {
           border: 1px solid ${C.rim};
@@ -67,6 +71,9 @@ export function PtPortalStyles() {
           text-align: left;
           display: grid;
           gap: 14px;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 132px;
         }
         .pt-sidebar-button {
           width: 100%;
@@ -100,12 +107,280 @@ export function PtPortalStyles() {
           display: grid;
           gap: 12px;
           transition: background 0.15s, border-color 0.15s, transform 0.15s;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 150px;
         }
         .pt-queue-card:hover,
         .pt-queue-card:focus-visible {
           border-color: ${C.limeMid};
           background: ${C.limeDim};
           transform: translateY(-1px);
+        }
+        .pt-dashboard-grid {
+          display: grid;
+          gap: 14px;
+        }
+        .pt-dashboard-summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+        }
+        .pt-dashboard-section-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+        .pt-dashboard-section-head > div:first-child > div:last-child {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 26px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-dashboard-priority-list,
+        .pt-dashboard-compact-list {
+          display: grid;
+          gap: 10px;
+        }
+        .pt-dashboard-action-card {
+          width: 100%;
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 16px 18px;
+          color: ${C.bone};
+          display: grid;
+          gap: 12px;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 180px;
+        }
+        .pt-session-prep-list {
+          display: grid;
+          gap: 10px;
+        }
+        .pt-session-prep-board-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+        .pt-session-prep-board-head > div:first-child > div:last-child {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 26px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 6px;
+        }
+        .pt-session-prep-card {
+          border: 1px solid ${C.rim};
+          background: ${C.deep};
+          border-radius: 8px;
+          padding: 16px 18px;
+          display: grid;
+          gap: 12px;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 260px;
+        }
+        .pt-session-prep-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: start;
+          gap: 14px;
+        }
+        .pt-session-prep-patient {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 24px;
+          color: ${C.bone};
+          line-height: 1;
+        }
+        .pt-session-prep-meta {
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          color: ${C.muted};
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          margin-top: 6px;
+        }
+        .pt-session-prep-note {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.45;
+        }
+        .pt-session-prep-grid {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 12px;
+        }
+        .pt-session-prep-grid > div {
+          border: 1px solid ${C.rim};
+          background: ${C.panel};
+          border-radius: 7px;
+          padding: 12px;
+          min-width: 0;
+        }
+        .pt-session-prep-value {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 24px;
+          color: ${C.bone};
+          line-height: 1;
+          margin-top: 7px;
+        }
+        .pt-session-prep-grid span {
+          display: block;
+          color: ${C.muted};
+          font-size: 13px;
+          line-height: 1.45;
+          margin-top: 6px;
+        }
+        .pt-session-prep-checklist {
+          list-style: none;
+          display: grid;
+          gap: 7px;
+          margin-top: 9px;
+        }
+        .pt-session-prep-checklist li {
+          position: relative;
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.35;
+          padding-left: 16px;
+        }
+        .pt-session-prep-checklist li::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0.55em;
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: ${C.lime};
+        }
+        .pt-session-prep-actions {
+          border-top: 1px solid ${C.rim};
+          padding-top: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+        .pt-dashboard-action-row {
+          border-top: 1px solid ${C.rim};
+          padding-top: 12px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          align-items: end;
+          gap: 14px;
+        }
+        .pt-dashboard-action-row > div:first-child > div:last-child {
+          color: ${C.bone};
+          font-size: 13px;
+          line-height: 1.45;
+          margin-top: 6px;
+        }
+        .pt-dashboard-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 8px;
+        }
+        .pt-dashboard-actions button,
+        .pt-session-prep-actions button,
+        .pt-dashboard-compact-row {
+          border: 1px solid ${C.rim};
+          border-radius: 7px;
+          background: ${C.panel};
+          color: ${C.bone};
+          font-family: 'Fira Code', monospace;
+          font-size: 10px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+        }
+        .pt-dashboard-actions button {
+          padding: 10px 11px;
+        }
+        .pt-session-prep-actions button {
+          padding: 10px 11px;
+        }
+        .pt-dashboard-actions .pt-dashboard-review-button {
+          border-color: ${C.limeMid};
+          background: ${C.limeDim};
+          color: ${C.lime};
+        }
+        .pt-session-prep-actions .pt-dashboard-review-button {
+          border-color: ${C.limeMid};
+          background: ${C.limeDim};
+          color: ${C.lime};
+        }
+        .pt-session-prep-actions .pt-milestone-pass-button,
+        .pt-session-prep-actions .pt-milestone-pass-button-active {
+          border-color: ${C.limeMid};
+          color: ${C.lime};
+        }
+        .pt-session-prep-actions .pt-milestone-pass-button-active {
+          background: ${C.limeDim};
+        }
+        .pt-session-prep-actions .pt-milestone-fail-button,
+        .pt-session-prep-actions .pt-milestone-fail-button-active {
+          border-color: ${C.red}55;
+          color: ${C.red};
+        }
+        .pt-session-prep-actions .pt-milestone-fail-button-active {
+          background: ${C.redDim};
+        }
+        .pt-dashboard-actions .pt-dashboard-review-button:hover,
+        .pt-dashboard-actions .pt-dashboard-review-button:focus-visible,
+        .pt-session-prep-actions .pt-dashboard-review-button:hover,
+        .pt-session-prep-actions .pt-dashboard-review-button:focus-visible {
+          border-color: ${C.lime};
+          background: ${C.limeMid};
+        }
+        .pt-dashboard-actions button:hover,
+        .pt-dashboard-actions button:focus-visible,
+        .pt-session-prep-actions button:hover,
+        .pt-session-prep-actions button:focus-visible,
+        .pt-dashboard-compact-row:hover,
+        .pt-dashboard-compact-row:focus-visible {
+          border-color: ${C.limeMid};
+          background: ${C.limeDim};
+        }
+        .pt-dashboard-compact-row {
+          width: 100%;
+          padding: 13px 14px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 14px;
+          text-align: left;
+        }
+        .pt-dashboard-compact-row > div:first-child {
+          min-width: 0;
+        }
+        .pt-dashboard-compact-row > div:first-child > div {
+          font-family: 'Bebas Neue', cursive;
+          font-size: 20px;
+          color: ${C.bone};
+          line-height: 1;
+          letter-spacing: 0;
+          text-transform: none;
+        }
+        .pt-dashboard-compact-row span {
+          display: block;
+          margin-top: 6px;
+          color: ${C.muted};
+          font-family: 'DM Sans', sans-serif;
+          font-size: 12px;
+          line-height: 1.4;
+          letter-spacing: 0;
+          text-transform: none;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
         .pt-patient-avatar {
           width: 48px;
@@ -263,6 +538,9 @@ export function PtPortalStyles() {
           grid-template-columns: 18px minmax(0, 1fr);
           gap: 10px;
           position: relative;
+          contain: layout paint style;
+          content-visibility: auto;
+          contain-intrinsic-size: auto 190px;
         }
         .pt-timeline-item::before {
           content: "";
@@ -1204,7 +1482,7 @@ export function PtPortalStyles() {
             align-items: center;
           }
           .pt-sidebar nav {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(5, minmax(0, 1fr));
           }
           .pt-sidebar-actions {
             margin-top: 0 !important;
@@ -1224,6 +1502,9 @@ export function PtPortalStyles() {
           }
           .pt-overview-dashboard > :first-child {
             grid-column: auto;
+          }
+          .pt-dashboard-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
         @media (max-width: 820px) {
@@ -1249,8 +1530,14 @@ export function PtPortalStyles() {
           .pt-plan-hero,
           .pt-plan-decision,
           .pt-weekly-grid,
-          .pt-plan-summary {
+          .pt-plan-summary,
+          .pt-dashboard-summary,
+          .pt-session-prep-grid,
+          .pt-dashboard-action-row {
             grid-template-columns: 1fr;
+          }
+          .pt-dashboard-actions {
+            justify-content: flex-start;
           }
           .pt-plan-hero-side {
             justify-items: stretch;

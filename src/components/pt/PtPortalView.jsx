@@ -6,6 +6,8 @@ import { PtPortalStyles } from "./PtPortalStyles";
 import { Label } from "./ptPortalShared";
 import { SIDEBAR_SECTIONS } from "./ptPortalUtils";
 
+const PATIENT_WORKSPACE_TABS = new Set(["overview", "plan", "messages", "history"]);
+
 export function PtPortalView({
   user,
   patients,
@@ -26,7 +28,9 @@ export function PtPortalView({
   onMarkReportReviewed,
 }) {
   const [activePatientTab, setActivePatientTab] = useState("overview");
-  const [activeSidebarSection, setActiveSidebarSection] = useState("patients");
+  const [activeSidebarSection, setActiveSidebarSection] = useState("dashboard");
+  const [reviewedPriorityActionIds, setReviewedPriorityActionIds] = useState([]);
+  const [milestoneDecisions, setMilestoneDecisions] = useState({});
   const selectedPatient = patients.find((patient) => patient.id === selectedPatientId) || null;
   const selectedReport = reports.find((report) => report.patientId === selectedPatient?.id);
   const selectedCheckIn = [...checkIns].reverse().find((checkIn) => checkIn.patientId === selectedPatient?.id);
@@ -60,7 +64,7 @@ export function PtPortalView({
 
   const openPatientWorkspace = (patientId, tab = "overview") => {
     onSelectPatient(patientId);
-    setActivePatientTab(tab);
+    setActivePatientTab(PATIENT_WORKSPACE_TABS.has(tab) ? tab : "overview");
   };
 
   const openSidebarSection = (sectionId) => {
@@ -70,7 +74,23 @@ export function PtPortalView({
   };
 
   const showPatientList = () => {
-    openSidebarSection("patients");
+    openSidebarSection("dashboard");
+  };
+
+  const markPriorityActionReviewed = (action) => {
+    if (action.reportId) {
+      onMarkReportReviewed(action.reportId);
+      return;
+    }
+
+    setReviewedPriorityActionIds((current) => (current.includes(action.id) ? current : [...current, action.id]));
+  };
+
+  const recordMilestoneDecision = (checkId, outcome) => {
+    setMilestoneDecisions((current) => ({
+      ...current,
+      [checkId]: { outcome, ts: Date.now() },
+    }));
   };
 
   return (
@@ -120,10 +140,15 @@ export function PtPortalView({
                 section={activeSidebarSection}
                 patients={patients}
                 reports={reports}
+                checkIns={checkIns}
                 threads={threads}
                 latestCheckInsByPatient={latestCheckInsByPatient}
                 onOpenPatient={openPatientWorkspace}
                 onMarkReportReviewed={onMarkReportReviewed}
+                onMarkPriorityActionReviewed={markPriorityActionReviewed}
+                reviewedPriorityActionIds={reviewedPriorityActionIds}
+                milestoneDecisions={milestoneDecisions}
+                onSetMilestoneDecision={recordMilestoneDecision}
               />
             ) : (
               <PatientWorkspace

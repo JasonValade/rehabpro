@@ -1,82 +1,479 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { C } from "../../constants/colors";
+import { MILESTONES } from "../../data/rehabMock";
 import { Tag } from "../ui/Tag";
 import { EmptyState, Label, Metric, Panel, PatientRow, SectionHeader, WorkQueueCard } from "./ptPortalShared";
 import { relativeTime } from "./ptPortalUtils";
+
+function getLatestPatientReport(reports, patientId) {
+  return reports
+    .filter((report) => report.patientId === patientId)
+    .sort((a, b) => b.ts - a.ts)[0];
+}
+
+function getLatestMessageNeedingReply(thread) {
+  const messages = [...(thread?.messages || [])].sort((a, b) => (a.ts || 0) - (b.ts || 0));
+  const latestPtMessage = [...messages].reverse().find((message) => message.sender === "pt");
+  const latestPtTs = latestPtMessage?.ts || 0;
+
+  return [...messages]
+    .reverse()
+    .find(
+      (message) =>
+        message.sender === "patient" &&
+        (message.ts || 0) > latestPtTs &&
+        !message.reportId &&
+        !String(message.text || "").startsWith("SYMPTOM REPORT"),
+    );
+}
+
+function hasWorseningSymptoms(patientCheckIns) {
+  const comparable = [...patientCheckIns]
+    .filter((checkIn) => Number.isFinite(Number(checkIn.pain)) || Number.isFinite(Number(checkIn.swelling)))
+    .sort((a, b) => a.ts - b.ts);
+  if (comparable.length < 2) return false;
+
+  const previous = comparable.at(-2);
+  const latest = comparable.at(-1);
+  return Number(latest.pain || 0) > Number(previous.pain || 0) || Number(latest.swelling || 0) > Number(previous.swelling || 0);
+}
+
+function getNextPatientMilestone(patient) {
+  if (patient.injury?.toLowerCase().includes("achilles")) {
+    return patient.week < 8
+      ? { label: "Pain-free walking volume", week: 8 }
+      : patient.week < 14
+        ? { label: "Single-leg calf raise control", week: 14 }
+        : { label: "Return-to-run tolerance", week: 18 };
+  }
+
+  if (patient.injury?.toLowerCase().includes("patellar")) {
+    return patient.week < 16
+      ? { label: "Squat and step-down tolerance", week: 16 }
+      : { label: "Single-leg tendon loading", week: 22 };
+  }
+
+  return MILESTONES.find((milestone) => !milestone.achieved && milestone.week >= patient.week) || MILESTONES.find((milestone) => !milestone.achieved) || { label: "Return to activity", week: patient.week };
+}
+
+function getPatientAction(patient, reports, latestCheckIn, patientCheckIns, thread) {
+  const latestReport = getLatestPatientReport(reports, patient.id);
+  const nextMilestone = getNextPatientMilestone(patient);
+  const unreadReport = reports
+    .filter((report) => report.patientId === patient.id && !report.ptRead)
+    .sort((a, b) => b.ts - a.ts)[0];
+  const highReport = unreadReport && (Number(unreadReport.pain) >= 5 || Number(unreadReport.swelling) >= 4);
+  const highCheckIn = latestCheckIn && (Number(latestCheckIn.pain) >= 5 || Number(latestCheckIn.swelling) >= 5);
+  const completion = Number(latestCheckIn?.completion);
+  const lowCompletion = Number.isFinite(completion) && completion < 75;
+  const lastCheckInAgeHours = latestCheckIn ? (Date.now() - latestCheckIn.ts) / 3600000 : Infinity;
+  const staleCheckIn = lastCheckInAgeHours > 72;
+  const planGap = patient.assignedExercises.length < 3;
+  const messageNeedingReply = getLatestMessageNeedingReply(thread);
+  const worseningSymptoms = hasWorseningSymptoms(patientCheckIns);
+  const milestoneDue = !unreadReport && patient.week >= Math.max(0, Number(nextMilestone.week || patient.week) - 1);
+  const readyToProgress = !unreadReport && !highCheckIn && Number.isFinite(completion) && completion >= 85 && patient.assignedExercises.length >= 3;
+
+  const candidates = [
+    highReport && {
+      id: `${patient.id}:report:${unreadReport.id}`,
+      score: 100,
+      tab: "overview",
+      label: "Review now",
+      color: C.red,
+      title: "High symptom report",
+      detail: `${unreadReport.exercise}: pain ${unreadReport.pain}/5, swelling ${unreadReport.swelling}/5`,
+      note: unreadReport.note,
+      ts: unreadReport.ts,
+      reportId: unreadReport.id,
+    },
+    !highReport && unreadReport && {
+      id: `${patient.id}:report:${unreadReport.id}`,
+      score: 80,
+      tab: "overview",
+      label: "Review report",
+      color: C.amber,
+      title: "New symptom report",
+      detail: `${unreadReport.exercise}: pain ${unreadReport.pain}/5`,
+      note: unreadReport.note,
+      ts: unreadReport.ts,
+      reportId: unreadReport.id,
+    },
+    messageNeedingReply && {
+      id: `${patient.id}:message:${messageNeedingReply.ts || "latest"}`,
+      score: 70,
+      tab: "messages",
+      label: "Reply needed",
+      color: C.blue,
+      title: "Patient question",
+      detail: "Latest message has no PT reply",
+      note: messageNeedingReply.text,
+      ts: messageNeedingReply.ts,
+    },
+    milestoneDue && {
+      id: `${patient.id}:milestone:${nextMilestone.label}`,
+      score: 60,
+      tab: "overview",
+      label: "Milestone check",
+      color: C.lime,
+      title: "Milestone due",
+      detail: `${nextMilestone.label} readiness screen`,
+      note: `Week ${patient.week} lines up with the ${nextMilestone.label} milestone. Check symptoms and movement quality before progressing.`,
+      ts: latestCheckIn?.ts || latestReport?.ts || 0,
+    },
+    worseningSymptoms && {
+      id: `${patient.id}:worsening:${latestCheckIn?.id || latestCheckIn?.ts || "latest"}`,
+      score: 55,
+      tab: "history",
+      label: "Trend review",
+      color: C.amber,
+      title: "Symptoms trending worse",
+      detail: `Latest check-in: pain ${latestCheckIn?.pain ?? "-"}/10, swelling ${latestCheckIn?.swelling ?? "-"}/10`,
+      note: latestCheckIn?.concern || "Recent check-ins show a symptom increase.",
+      ts: latestCheckIn?.ts || 0,
+    },
+    highCheckIn && {
+      id: `${patient.id}:high-check-in:${latestCheckIn.id || latestCheckIn.ts}`,
+      score: 55,
+      tab: "history",
+      label: "Check symptoms",
+      color: C.amber,
+      title: "Symptoms trending high",
+      detail: `Latest check-in: pain ${latestCheckIn.pain}/10, swelling ${latestCheckIn.swelling}/10`,
+      note: latestCheckIn.concern,
+      ts: latestCheckIn.ts,
+    },
+    lowCompletion && {
+      id: `${patient.id}:low-completion:${latestCheckIn.id || latestCheckIn.ts}`,
+      score: 45,
+      tab: "messages",
+      label: "Follow up",
+      color: C.blue,
+      title: "Low adherence",
+      detail: `Last session completion ${completion}%`,
+      note: latestCheckIn.concern,
+      ts: latestCheckIn.ts,
+    },
+    staleCheckIn && {
+      id: `${patient.id}:stale-check-in:${latestCheckIn?.id || latestCheckIn?.ts || "missing"}`,
+      score: 35,
+      tab: "messages",
+      label: "Check in",
+      color: C.blue,
+      title: "No recent check-in",
+      detail: latestCheckIn ? `Last check-in ${relativeTime(latestCheckIn.ts)}` : "No check-ins submitted",
+      note: "Send a quick follow-up before the next home session.",
+      ts: latestCheckIn?.ts || 0,
+    },
+    planGap && {
+      id: `${patient.id}:plan-gap:${patient.assignedExercises.length}`,
+      score: 25,
+      tab: "plan",
+      label: "Update plan",
+      color: C.blue,
+      title: "Plan needs coverage",
+      detail: `${patient.assignedExercises.length} assigned exercises`,
+      note: "Add enough home work to cover today's rehab block.",
+      ts: latestReport?.ts || latestCheckIn?.ts || 0,
+    },
+    readyToProgress && {
+      id: `${patient.id}:ready-to-progress:${latestCheckIn.id || latestCheckIn.ts}`,
+      score: 20,
+      tab: "plan",
+      label: "Progress plan",
+      color: C.lime,
+      title: "Ready to progress",
+      detail: `Completion ${completion}% with no open reports`,
+      note: "Review load tolerance and consider the next progression.",
+      ts: latestCheckIn.ts,
+    },
+  ].filter(Boolean);
+
+  if (candidates.length > 0) {
+    return candidates.sort((a, b) => b.score - a.score || b.ts - a.ts)[0];
+  }
+
+  return {
+    id: `${patient.id}:stable:${latestReport?.id || latestCheckIn?.id || latestCheckIn?.ts || "empty"}`,
+    score: 0,
+    tab: "overview",
+    label: "Stable",
+    color: C.lime,
+    title: "Stable",
+    detail: latestReport ? `Latest report reviewed ${relativeTime(latestReport.ts)}` : "No open review items",
+    note: latestCheckIn?.concern || "Continue current plan and monitor next check-in.",
+    ts: latestReport?.ts || latestCheckIn?.ts || 0,
+  };
+}
+
+function DashboardActionCard({ patient, action, onOpenPatient, onMarkPriorityActionReviewed }) {
+  const openAction = (tab = action.tab) => {
+    onOpenPatient(patient.id, tab);
+  };
+
+  return (
+    <article className="pt-dashboard-action-card">
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "start" }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1 }}>{patient.name}</div>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+            {action.title} / {action.ts ? relativeTime(action.ts) : "No recent check-in"}
+          </div>
+        </div>
+        <Tag label={action.label} color={action.color} />
+      </div>
+      <div style={{ fontSize: 13, color: C.bone, lineHeight: 1.45 }}>{action.note}</div>
+      <div className="pt-dashboard-action-row">
+        <div>
+          <Label color={action.color}>Next action</Label>
+          <div>{action.detail}</div>
+        </div>
+        <div className="pt-dashboard-actions">
+          <button
+            type="button"
+            className="pt-dashboard-review-button"
+            aria-label={`Mark ${patient.name}'s priority item reviewed`}
+            onClick={() => onMarkPriorityActionReviewed(action)}
+          >
+            Mark reviewed
+          </button>
+          <button type="button" onClick={() => openAction(action.tab)}>
+            Open
+          </button>
+          <button type="button" onClick={() => openAction("messages")}>
+            Message
+          </button>
+          <button type="button" onClick={() => openAction("plan")}>
+            Plan
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function getMilestoneCheckId(patient, milestone) {
+  return `${patient.id}:milestone:${milestone.label}`;
+}
+
+function getMilestoneChecks(patient, milestone, latestReport) {
+  const hasOpenReport = latestReport && !latestReport.ptRead;
+  if (hasOpenReport) {
+    return ["Review open symptom report", "Confirm pain and swelling are acceptable", "Decide pass/fail after movement screen"];
+  }
+
+  if (patient.week >= Number(milestone.week || patient.week)) {
+    return [`Test ${milestone.label}`, "Confirm movement quality", "Record pass/fail decision"];
+  }
+
+  return [`Preview ${milestone.label}`, "Confirm current phase tolerance", "Defer pass/fail until target week if needed"];
+}
+
+function MilestoneCheckCard({ patient, milestone, latestReport, latestCheckIn, decision, onOpenPatient, onSetMilestoneDecision }) {
+  const checkId = getMilestoneCheckId(patient, milestone);
+  const hasOpenReport = latestReport && !latestReport.ptRead;
+  const hasCheckIn = Boolean(latestCheckIn);
+  const due = patient.week >= Number(milestone.week || patient.week);
+  const status = decision?.outcome || "pending";
+  const statusColor = status === "passed" ? C.lime : status === "failed" ? C.red : hasOpenReport ? C.amber : due ? C.lime : C.blue;
+  const statusLabel = status === "passed" ? "Passed" : status === "failed" ? "Failed" : hasOpenReport ? "Hold" : due ? "Due" : "Upcoming";
+  const checks = getMilestoneChecks(patient, milestone, latestReport);
+
+  return (
+    <article className="pt-session-prep-card">
+      <div className="pt-session-prep-head">
+        <div style={{ minWidth: 0 }}>
+          <div className="pt-session-prep-patient">{patient.name}</div>
+          <div className="pt-session-prep-meta">
+            {patient.injury} / Week {patient.week}
+          </div>
+        </div>
+        <Tag label={statusLabel} color={statusColor} />
+      </div>
+
+      <div className="pt-session-prep-grid">
+        <div>
+          <Label color={statusColor}>Milestone</Label>
+          <div className="pt-session-prep-value">{milestone.label}</div>
+          <span>Target week {milestone.week}</span>
+        </div>
+        <div>
+          <Label color={statusColor}>Latest signal</Label>
+          <div className="pt-session-prep-value">
+            {latestReport ? `Pain ${latestReport.pain}/5` : hasCheckIn ? `${latestCheckIn.completion ?? "-"}% complete` : `${patient.assignedExercises.length} exercises`}
+          </div>
+          <span>{latestReport ? `${latestReport.exercise} / ${relativeTime(latestReport.ts)}` : hasCheckIn ? `Last check-in ${relativeTime(latestCheckIn.ts)}` : "No recent submission"}</span>
+        </div>
+        <div>
+          <Label color={statusColor}>Check criteria</Label>
+          <ul className="pt-session-prep-checklist">
+            {checks.map((check) => (
+              <li key={check}>{check}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {decision ? (
+        <div className="pt-session-prep-note">
+          Marked {status} {relativeTime(decision.ts)}. Use the buttons to revise the decision if the screen changes.
+        </div>
+      ) : (
+        <div className="pt-session-prep-note">
+          {hasOpenReport ? "Open symptom report should be considered before clearing this milestone." : due ? "This milestone is ready for a PT pass/fail screen." : "This milestone is not due yet, but can be screened early if clinically appropriate."}
+        </div>
+      )}
+
+      <div className="pt-session-prep-actions">
+        <button
+          type="button"
+          className={status === "passed" ? "pt-milestone-pass-button-active" : "pt-milestone-pass-button"}
+          aria-label={`Pass ${patient.name}'s ${milestone.label} milestone`}
+          onClick={() => onSetMilestoneDecision(checkId, "passed")}
+        >
+          Pass
+        </button>
+        <button
+          type="button"
+          className={status === "failed" ? "pt-milestone-fail-button-active" : "pt-milestone-fail-button"}
+          aria-label={`Fail ${patient.name}'s ${milestone.label} milestone`}
+          onClick={() => onSetMilestoneDecision(checkId, "failed")}
+        >
+          Fail
+        </button>
+        <button type="button" onClick={() => onOpenPatient(patient.id, "history")}>
+          History
+        </button>
+        <button type="button" onClick={() => onOpenPatient(patient.id, "plan")}>
+          Plan
+        </button>
+      </div>
+    </article>
+  );
+}
 
 export function PortalSection({
   section,
   patients,
   reports,
+  checkIns,
   threads,
   latestCheckInsByPatient,
   onOpenPatient,
-  onMarkReportReviewed,
+  onMarkPriorityActionReviewed,
+  reviewedPriorityActionIds = [],
+  milestoneDecisions = {},
+  onSetMilestoneDecision,
 }) {
-  const unreadReports = reports.filter((report) => !report.ptRead).sort((a, b) => b.ts - a.ts);
-  const sortedThreads = [...threads].sort((a, b) => {
-    const aTs = a.messages.at(-1)?.ts || 0;
-    const bTs = b.messages.at(-1)?.ts || 0;
-    return bTs - aTs;
-  });
-  const patientById = new Map(patients.map((patient) => [patient.id, patient]));
-  const reportsByPatient = reports.reduce((groups, report) => {
-    const patientReports = groups.get(report.patientId) || [];
-    patientReports.push(report);
-    groups.set(report.patientId, patientReports);
-    return groups;
-  }, new Map());
+  const needsDashboardData = section === "dashboard" || section === "patients";
+  const needsMessageData = section === "dashboard" || section === "messages";
 
-  if (section === "review") {
-    return (
-      <>
-        <SectionHeader
-          eyebrow="Clinical review"
-          title="Review queue"
-          detail="Prioritize new symptom reports and open the patient workspace when a plan change is needed."
-          tag={<Tag label={`${unreadReports.length} unread`} color={unreadReports.length ? C.red : C.lime} />}
-        />
-        <Panel>
-          <div style={{ display: "grid", gap: 10 }}>
-            {unreadReports.length > 0 ? (
-              unreadReports.map((report) => {
-                const patient = patientById.get(report.patientId);
-                return (
-                  <WorkQueueCard
-                    key={report.id}
-                    title={patient?.name || "Unknown patient"}
-                    meta={`${report.exercise} / ${relativeTime(report.ts)}`}
-                    description={report.note}
-                    tag={<Tag label={`Pain ${report.pain}/5`} color={report.pain >= 5 ? C.red : C.amber} />}
-                    onClick={() => onOpenPatient(report.patientId, "overview")}
-                  >
-                    <div className="pt-report-metrics">
-                      <Metric label="Swelling" value={`${report.swelling}/5`} color={report.swelling >= 4 ? C.red : C.bone} tone={report.swelling >= 4 ? "danger" : "default"} />
-                      <Metric label="Location" value={report.location} />
-                      <div style={{ display: "grid", alignContent: "end" }}>
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            onMarkReportReviewed(report.id);
-                          }}
-                          style={{ width: "100%", padding: "11px 12px", border: `1px solid ${C.rim}`, borderRadius: 7, background: C.panel, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}
-                        >
-                          Mark reviewed
-                        </button>
-                      </div>
-                    </div>
-                  </WorkQueueCard>
-                );
-              })
-            ) : (
-              <EmptyState title="Review queue clear" message="New patient symptom reports will appear here when they need clinician review." />
-            )}
-          </div>
-        </Panel>
-      </>
-    );
-  }
+  const unreadReports = useMemo(
+    () => (needsDashboardData ? reports.filter((report) => !report.ptRead).sort((a, b) => b.ts - a.ts) : []),
+    [needsDashboardData, reports],
+  );
+  const sortedThreads = useMemo(
+    () =>
+      needsMessageData
+        ? [...threads].sort((a, b) => {
+            const aTs = a.messages.at(-1)?.ts || 0;
+            const bTs = b.messages.at(-1)?.ts || 0;
+            return bTs - aTs;
+          })
+        : [],
+    [needsMessageData, threads],
+  );
+  const reportsByPatient = useMemo(() => {
+    if (section !== "messages") return new Map();
+
+    return reports.reduce((groups, report) => {
+      const current = groups.get(report.patientId) || { latestReport: null, unreadReportCount: 0 };
+      groups.set(report.patientId, {
+        latestReport: !current.latestReport || report.ts > current.latestReport.ts ? report : current.latestReport,
+        unreadReportCount: current.unreadReportCount + (report.ptRead ? 0 : 1),
+      });
+      return groups;
+    }, new Map());
+  }, [reports, section]);
+  const checkInsByPatient = useMemo(() => {
+    if (!needsDashboardData) return new Map();
+
+    return checkIns.reduce((groups, checkIn) => {
+      const patientCheckIns = groups.get(checkIn.patientId) || [];
+      patientCheckIns.push(checkIn);
+      groups.set(checkIn.patientId, patientCheckIns);
+      return groups;
+    }, new Map());
+  }, [checkIns, needsDashboardData]);
+  const latestReportByPatient = useMemo(() => {
+    if (!needsDashboardData) return new Map();
+
+    return reports.reduce((latest, report) => {
+      const current = latest.get(report.patientId);
+      if (!current || report.ts > current.ts) {
+        latest.set(report.patientId, report);
+      }
+      return latest;
+    }, new Map());
+  }, [needsDashboardData, reports]);
+  const patientActions = useMemo(() => {
+    if (!needsDashboardData) return [];
+
+    const threadsByPatient = new Map(threads.map((thread) => [thread.patientId, thread]));
+    return patients
+      .map((patient) => ({
+        patient,
+        action: getPatientAction(
+          patient,
+          reports,
+          latestCheckInsByPatient.get(patient.id),
+          checkInsByPatient.get(patient.id) || [],
+          threadsByPatient.get(patient.id),
+        ),
+      }))
+      .sort((a, b) => b.action.score - a.action.score || b.action.ts - a.action.ts);
+  }, [checkInsByPatient, latestCheckInsByPatient, needsDashboardData, patients, reports, threads]);
+  const reviewedPriorityActions = useMemo(() => new Set(reviewedPriorityActionIds), [reviewedPriorityActionIds]);
+  const visiblePatientActions = useMemo(
+    () => (needsDashboardData ? patientActions.filter(({ action }) => !reviewedPriorityActions.has(action.id)) : []),
+    [needsDashboardData, patientActions, reviewedPriorityActions],
+  );
+  const priorityActions = useMemo(
+    () => (section === "dashboard" ? visiblePatientActions.filter(({ action }) => action.score >= 25) : []),
+    [section, visiblePatientActions],
+  );
+  const readyActions = useMemo(
+    () => (section === "dashboard" ? visiblePatientActions.filter(({ action }) => action.score === 20) : []),
+    [section, visiblePatientActions],
+  );
+  const dashboardActions = priorityActions.length ? priorityActions : readyActions.slice(0, 3);
+  const milestoneChecks = useMemo(
+    () =>
+      section === "dashboard"
+        ? patients
+            .map((patient) => {
+              const milestone = getNextPatientMilestone(patient);
+              const latestReport = latestReportByPatient.get(patient.id);
+              const latestCheckIn = latestCheckInsByPatient.get(patient.id);
+              const decision = milestoneDecisions[getMilestoneCheckId(patient, milestone)];
+              return {
+                patient,
+                milestone,
+                latestReport,
+                latestCheckIn,
+                decision,
+                dueScore: patient.week >= Number(milestone.week || patient.week) ? 2 : patient.week >= Number(milestone.week || patient.week) - 2 ? 1 : 0,
+              };
+            })
+            .sort((a, b) => b.dueScore - a.dueScore || b.patient.week - a.patient.week)
+        : [],
+    [latestCheckInsByPatient, latestReportByPatient, milestoneDecisions, patients, section],
+  );
+  const pendingMilestoneCount = useMemo(() => milestoneChecks.filter((check) => !check.decision).length, [milestoneChecks]);
+  const latestMessages = useMemo(
+    () => (needsMessageData ? sortedThreads.filter((thread) => !thread.hasReport).slice(0, 3) : []),
+    [needsMessageData, sortedThreads],
+  );
 
   if (section === "messages") {
     return (
@@ -90,9 +487,9 @@ export function PortalSection({
         <Panel>
           <div style={{ display: "grid", gap: 10 }}>
             {sortedThreads.map((thread) => {
-              const threadReports = reportsByPatient.get(thread.patientId) || [];
-              const latestReport = threadReports.slice().sort((a, b) => b.ts - a.ts)[0];
-              const unreadReportCount = threadReports.filter((report) => !report.ptRead).length;
+              const threadReportSummary = reportsByPatient.get(thread.patientId);
+              const latestReport = threadReportSummary?.latestReport;
+              const unreadReportCount = threadReportSummary?.unreadReportCount || 0;
               const showReportPreview = thread.hasReport && latestReport;
 
               return (
@@ -144,35 +541,130 @@ export function PortalSection({
     );
   }
 
+  if (section === "patients") {
+    return (
+      <>
+        <SectionHeader
+          eyebrow="Caseload"
+          title="Active patients"
+          detail="Browse every active patient, scan their latest signal, and open the full workspace."
+          tag={<Tag label={`${patients.length} active`} color={C.blue} />}
+        />
+        <Panel>
+          <div className="pt-dashboard-section-head">
+            <div>
+              <Label color={C.lime}>Patients</Label>
+              <div>Full active caseload</div>
+            </div>
+            <Tag label={`${unreadReports.length} open reports`} color={unreadReports.length ? C.red : C.lime} />
+          </div>
+          <div style={{ display: "grid", gap: 10 }}>
+            {patientActions.map(({ patient }) => (
+              <PatientRow
+                key={patient.id}
+                patient={patient}
+                active={false}
+                report={getLatestPatientReport(reports, patient.id)}
+                checkIn={latestCheckInsByPatient.get(patient.id)}
+                onClick={() => onOpenPatient(patient.id, "overview")}
+              />
+            ))}
+          </div>
+        </Panel>
+      </>
+    );
+  }
+
   return (
     <>
       <SectionHeader
-        eyebrow="Caseload"
-        title="Patients"
-        detail="Choose a patient to open their clinical review, messages, and exercise plan."
-        tag={<Tag label={`${patients.length} active`} color={C.blue} />}
+        eyebrow="PT workday"
+        title="Dashboard"
+        detail="Triage the caseload, clear progression gates, and jump into follow-up from one place."
+        tag={<Tag label={`${priorityActions.length} priority / ${pendingMilestoneCount} gates`} color={priorityActions.length ? C.red : pendingMilestoneCount ? C.amber : C.lime} />}
       />
-      <Panel>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <div>
-            <Label color={C.lime}>Patients</Label>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, marginTop: 5 }}>Active caseload</div>
+      <div className="pt-dashboard-grid">
+        <Panel>
+          <div className="pt-dashboard-summary">
+            <Metric label="Needs review" value={unreadReports.length} color={unreadReports.length ? C.red : C.lime} tone={unreadReports.length ? "danger" : "default"} />
+            <Metric label="New messages" value={latestMessages.length} color={C.blue} />
+            <Metric label="Gates pending" value={pendingMilestoneCount} color={pendingMilestoneCount ? C.amber : C.lime} />
+            <Metric label="Active" value={patients.length} color={C.bone} />
           </div>
-          <Tag label={`${patients.length} active`} color={C.blue} />
-        </div>
-        <div style={{ display: "grid", gap: 10 }}>
-          {patients.map((patient) => (
-            <PatientRow
-              key={patient.id}
-              patient={patient}
-              active={false}
-              report={reports.find((report) => report.patientId === patient.id)}
-              checkIn={latestCheckInsByPatient.get(patient.id)}
-              onClick={() => onOpenPatient(patient.id, "overview")}
-            />
-          ))}
-        </div>
-      </Panel>
+        </Panel>
+
+        <Panel>
+          <div className="pt-dashboard-section-head">
+            <div>
+              <Label color={C.lime}>Priority queue</Label>
+              <div>Who needs attention first</div>
+            </div>
+            <Tag label={priorityActions.length ? `${priorityActions.length} to review` : "Clear"} color={priorityActions.length ? C.red : C.lime} />
+          </div>
+          <div className="pt-dashboard-priority-list">
+            {dashboardActions.length > 0 ? (
+              dashboardActions.map(({ patient, action }) => (
+                <DashboardActionCard key={patient.id} patient={patient} action={action} onOpenPatient={onOpenPatient} onMarkPriorityActionReviewed={onMarkPriorityActionReviewed} />
+              ))
+            ) : (
+              <EmptyState title="Queue clear" message="No reports, replies, adherence dips, stale check-ins, or progression candidates need action right now." />
+            )}
+          </div>
+        </Panel>
+
+        <Panel>
+          <div className="pt-session-prep-board-head">
+            <div>
+              <Label color={C.lime}>Progression checks</Label>
+              <div>Pass / fail session gates</div>
+            </div>
+            <Tag label={`${pendingMilestoneCount} pending`} color={pendingMilestoneCount ? C.amber : C.lime} />
+          </div>
+          <div className="pt-session-prep-list">
+            {milestoneChecks.length > 0 ? (
+              milestoneChecks.map(({ patient, milestone, latestReport, latestCheckIn, decision }) => (
+                <MilestoneCheckCard
+                  key={getMilestoneCheckId(patient, milestone)}
+                  patient={patient}
+                  milestone={milestone}
+                  latestReport={latestReport}
+                  latestCheckIn={latestCheckIn}
+                  decision={decision}
+                  onOpenPatient={onOpenPatient}
+                  onSetMilestoneDecision={onSetMilestoneDecision}
+                />
+              ))
+            ) : (
+              <EmptyState title="No progression checks" message="Active patients will appear here when they have milestone gates to screen." />
+            )}
+          </div>
+        </Panel>
+
+        <Panel>
+          <div className="pt-dashboard-section-head">
+            <div>
+              <Label color={C.blue}>Recent conversations</Label>
+              <div>Questions and follow-up without open reports</div>
+            </div>
+            <Tag label={`${threads.length} threads`} color={C.blue} />
+          </div>
+          <div className="pt-dashboard-compact-list">
+            {latestMessages.length > 0 ? (
+              latestMessages.map((thread) => (
+                <button key={thread.id} type="button" className="pt-dashboard-compact-row" onClick={() => onOpenPatient(thread.patientId, "messages")}>
+                  <div>
+                    <div>{thread.patientName}</div>
+                    <span>{thread.excerpt}</span>
+                  </div>
+                  <Tag label={thread.updated} color={C.blue} />
+                </button>
+              ))
+            ) : (
+              <EmptyState title="Inbox quiet" message="Open messages will appear here when they are not already part of the priority queue." />
+            )}
+          </div>
+        </Panel>
+      </div>
     </>
   );
 }

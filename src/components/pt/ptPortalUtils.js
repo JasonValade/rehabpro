@@ -72,8 +72,8 @@ export function getExercisePurpose(exercise) {
 }
 
 export const SIDEBAR_SECTIONS = [
-  { id: "patients", label: "Patients" },
-  { id: "review", label: "Review" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "patients", label: "Active patients" },
   { id: "messages", label: "Messages" },
   { id: "plans", label: "Exercise plans" },
 ];

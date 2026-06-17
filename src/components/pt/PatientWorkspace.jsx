@@ -334,7 +334,7 @@ export function PatientWorkspace({
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button type="button" onClick={onBack} className="pt-back-link">
-              Back to patients
+              Back to dashboard
             </button>
           </div>
         </div>

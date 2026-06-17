@@ -251,7 +251,7 @@ export default function RehabPro() {
   const demoPatientUsers = AUTH_USERS.filter((user) => user.role === 'patient' && user.patientId && patientProfiles[user.patientId])
   const demoPtUser = AUTH_USERS.find((user) => user.role === 'pt')
   const demoOptions = [...demoPatientUsers, ...(demoPtUser ? [demoPtUser] : [])]
-  const visiblePatients = visiblePtPatients(ptPatients)
+  const visiblePatients = useMemo(() => visiblePtPatients(ptPatients), [ptPatients])
   const reportBackedThreads = useMemo(
     () => mergeReportsIntoThreads(ptThreads, reports, visiblePatients),
     [ptThreads, reports, visiblePatients],
