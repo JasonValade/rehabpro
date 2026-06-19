@@ -21,10 +21,6 @@ type AuthUser = {
   patientId: string | null
 }
 
-const FONTS = `
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500;600&display=swap');
-`
-
 const TABS = [
   { id: 'home', icon: '⬡', label: 'HOME' },
   { id: 'train', icon: '◈', label: 'TRAIN' },
@@ -528,7 +524,6 @@ export default function RehabPro() {
     return (
       <>
         <style>{`
-          ${FONTS}
           * { box-sizing: border-box; margin: 0; padding: 0; }
           html, body { background: ${C.black}; color: ${C.bone}; }
           body { min-height: 100vh; }
@@ -781,7 +776,6 @@ export default function RehabPro() {
   return (
     <>
       <style>{`
-        ${FONTS}
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: ${C.black}; color: ${C.bone}; }
         body { min-height: 100vh; }

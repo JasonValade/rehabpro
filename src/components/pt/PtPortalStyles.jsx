@@ -4,7 +4,6 @@ import { C } from "../../constants/colors";
 export function PtPortalStyles() {
   return (
     <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500;600&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { background: ${C.black}; color: ${C.bone}; }
         body { min-height: 100vh; }
