@@ -121,7 +121,7 @@ function TabButton({ tab, activeTab, onClick }) {
   );
 }
 
-function TrendPanel({ title, value, unit, series, color, interpretation, points = [], children }) {
+function TrendPanel({ title, value, unit, series, color, interpretation, points = [], maxValue, children }) {
   const [selectedIndex, setSelectedIndex] = useState(Math.max(0, points.length - 1));
   const effectiveSelectedIndex = points.length ? Math.min(selectedIndex, points.length - 1) : 0;
   const selectedPoint = points[effectiveSelectedIndex];
@@ -138,7 +138,7 @@ function TrendPanel({ title, value, unit, series, color, interpretation, points 
         </div>
         {children}
       </div>
-      <SparkLine data={series} color={color} height={58} labels={points.map((point) => point.label)} selectedIndex={effectiveSelectedIndex} onPointSelect={setSelectedIndex} />
+      <SparkLine data={series} color={color} height={58} labels={points.map((point) => point.label)} selectedIndex={effectiveSelectedIndex} onPointSelect={setSelectedIndex} maxValue={maxValue} />
       {selectedPoint && (
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", border: `1px solid ${C.rim}`, borderRadius: 7, padding: "10px 12px", background: C.deep, marginTop: 12 }}>
           <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -166,7 +166,7 @@ function SymptomGraph({ label, value, series, color, points, selectedIndex, onPo
           <span style={{ fontSize: 12, color: C.muted }}> /10</span>
         </div>
       </div>
-      <SparkLine data={series} color={color} height={50} labels={points.map((point) => point.label)} selectedIndex={selectedIndex} onPointSelect={onPointSelect} />
+      <SparkLine data={series} color={color} height={50} labels={points.map((point) => point.label)} selectedIndex={selectedIndex} onPointSelect={onPointSelect} maxValue={10} />
     </div>
   );
 }
@@ -361,9 +361,9 @@ export function ProgressView({ patientProfile, milestones = [], progressData, co
     : "Milestones will appear here once a rehab plan is assigned.";
   const activeTrend =
     activeTab === "Completion"
-      ? <TrendPanel title="Completion" value={weeklyCompletion} unit="% weekly" series={completionSeries} color={C.lime} interpretation={completionInterpretation} points={completionPoints} />
+      ? <TrendPanel title="Completion" value={weeklyCompletion} unit="% weekly" series={completionSeries} color={C.lime} interpretation={completionInterpretation} points={completionPoints} maxValue={100} />
       : activeTab === "ROM"
-        ? <TrendPanel title="Range of Motion" value={latestRom} unit="degrees" series={romSeries} color={C.amber} interpretation={romInterpretation} points={romPoints} />
+        ? <TrendPanel title="Range of Motion" value={latestRom} unit="degrees" series={romSeries} color={C.amber} interpretation={romInterpretation} points={romPoints} maxValue={140} />
         : activeTab === "Milestones"
           ? (
             <div style={{ display: "grid", gap: 10 }}>

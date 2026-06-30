@@ -83,17 +83,17 @@ type TemplateExercise = {
 }
 
 const STARTER_TEMPLATES: Record<string, { name: string; exercises: TemplateExercise[] }> = {
-  acl_meniscus_template_a: {
-    name: 'ACL + Meniscus Starter Plan A',
+  acl_meniscus_protection_template: {
+    name: 'ACL + Meniscus Protection Starter',
     exercises: [
-      { name: 'Terminal Knee Extension', sets: 3, reps: '15', cadence: 'Daily' },
-      { name: 'Heel Slides', sets: 3, reps: '12', cadence: 'Daily' },
-      { name: 'Straight Leg Raise', sets: 3, reps: '12 each', cadence: 'Daily' },
       { name: 'Quad Sets', sets: 3, reps: '10', cadence: 'Daily' },
+      { name: 'Heel Slides', sets: 3, reps: '12', cadence: 'Daily' },
+      { name: 'Straight Leg Raise', sets: 3, reps: '10 each', cadence: 'Daily' },
+      { name: 'Terminal Knee Extension', sets: 3, reps: '12', cadence: 'Daily' },
     ],
   },
-  acl_meniscus_template_b: {
-    name: 'ACL + Meniscus Starter Plan B',
+  acl_meniscus_strength_template: {
+    name: 'ACL + Meniscus Strength Starter',
     exercises: [
       { name: 'Terminal Knee Extension', sets: 3, reps: '15', cadence: 'Daily' },
       { name: 'Wall Slides', sets: 3, reps: '12', cadence: 'Daily' },
@@ -102,22 +102,99 @@ const STARTER_TEMPLATES: Record<string, { name: string; exercises: TemplateExerc
       { name: 'Bilateral Calf Raises', sets: 3, reps: '20', cadence: '3x / week' },
     ],
   },
+  acl_meniscus_return_template: {
+    name: 'ACL + Meniscus Return Starter',
+    exercises: [
+      { name: 'Step-Ups', sets: 3, reps: '10 each', cadence: '3x / week' },
+      { name: 'Single-Leg Romanian Deadlift Reach', sets: 3, reps: '8 each', cadence: '3x / week' },
+      { name: 'Single-Leg Balance', sets: 3, reps: '30s each', cadence: '3x / week' },
+      { name: 'Drop Landing Mechanics', sets: 3, reps: '6', cadence: '2x / week' },
+    ],
+  },
+  patellar_tendon_protection_template: {
+    name: 'Patellar Tendon Protection Starter',
+    exercises: [
+      { name: 'Isometric Knee Extension', sets: 5, reps: '30-45s hold', cadence: 'Daily' },
+      { name: 'Spanish Squat - Isometric', sets: 4, reps: '30s hold', cadence: 'Daily' },
+      { name: 'Glute Bridge', sets: 3, reps: '12', cadence: '3x / week' },
+    ],
+  },
+  patellar_tendon_strength_template: {
+    name: 'Patellar Tendon Strength Starter',
+    exercises: [
+      { name: 'Spanish Squat - Isometric', sets: 4, reps: '45s hold', cadence: 'Daily' },
+      { name: 'Decline Eccentric Squat', sets: 3, reps: '12 slow', cadence: '3x / week' },
+      { name: 'Heavy Slow Goblet Squat', sets: 4, reps: '6-8', cadence: '3x / week' },
+      { name: 'Lateral Band Walks', sets: 3, reps: '20 steps', cadence: '3x / week' },
+    ],
+  },
+  patellar_tendon_return_template: {
+    name: 'Patellar Tendon Return Starter',
+    exercises: [
+      { name: 'Heavy Slow Goblet Squat', sets: 4, reps: '6-8', cadence: '2x / week' },
+      { name: 'Bulgarian Split Squat', sets: 3, reps: '8 each', cadence: '2x / week' },
+      { name: 'Pogo Hops', sets: 3, reps: '20 contacts', cadence: '2x / week' },
+      { name: 'Plyometric Bounding', sets: 4, reps: '10 bounds', cadence: '2x / week' },
+    ],
+  },
+  achilles_protection_template: {
+    name: 'Achilles Protection Starter',
+    exercises: [
+      { name: 'Ankle Pumps', sets: 3, reps: '30', cadence: 'Daily' },
+      { name: 'Towel Calf Stretch', sets: 3, reps: '30s hold', cadence: 'Daily' },
+      { name: 'Bilateral Calf Raises', sets: 3, reps: '12', cadence: '3x / week' },
+    ],
+  },
+  achilles_strength_template: {
+    name: 'Achilles Strength Starter',
+    exercises: [
+      { name: 'Bilateral Calf Raises', sets: 3, reps: '20', cadence: '3x / week' },
+      { name: 'Bent-Knee Soleus Raise', sets: 3, reps: '15', cadence: '3x / week' },
+      { name: 'Single-Leg Eccentric Calf Raise', sets: 3, reps: '12', cadence: '3x / week' },
+      { name: 'Farmer Carry on Toes', sets: 3, reps: '20m', cadence: '2x / week' },
+    ],
+  },
+  achilles_return_template: {
+    name: 'Achilles Return Starter',
+    exercises: [
+      { name: 'Bent-Knee Soleus Raise', sets: 4, reps: '10', cadence: '2x / week' },
+      { name: 'Farmer Carry on Toes', sets: 3, reps: '30m', cadence: '2x / week' },
+      { name: 'Pogo Hops', sets: 3, reps: '20 contacts', cadence: '2x / week' },
+      { name: 'Hopping Progression', sets: 3, reps: '15 each', cadence: '2x / week' },
+    ],
+  },
   default_conservative_template: {
     name: 'Conservative Starter Plan',
     exercises: [
-      { name: 'Quad Sets', sets: 3, reps: '10', cadence: 'Daily' },
-      { name: 'Heel Slides', sets: 3, reps: '12', cadence: 'Daily' },
+      { name: 'Dynamic Warm-Up Flow', sets: 2, reps: '5 min', cadence: 'Daily' },
       { name: 'Glute Bridge', sets: 3, reps: '10', cadence: '3x / week' },
+      { name: 'Farmer Carry', sets: 3, reps: '20m', cadence: '3x / week' },
     ],
   },
 }
 
-export function getTemplateKey(intake: { injuryType: string; week: number } | { injury_type: string; week: number }) {
+export function getTemplateKey(intake: { injuryType: string; rehabPhase?: string; week: number } | { injury_type: string; rehab_phase?: string; week: number }) {
   const injuryType = 'injuryType' in intake ? intake.injuryType : intake.injury_type
+  const rehabPhase = 'injuryType' in intake ? intake.rehabPhase : intake.rehab_phase
   const normalizedInjury = String(injuryType || '').toLowerCase()
+  const normalizedPhase = String(rehabPhase || '').toLowerCase()
+  const week = Number(intake.week)
+  const isReturnPhase = normalizedPhase.includes('return') || week >= 16
+  const isStrengthPhase = normalizedPhase.includes('strength') || normalizedPhase.includes('running') || week >= 8
 
   if (normalizedInjury.includes('acl') && normalizedInjury.includes('meniscus')) {
-    return Number(intake.week) < 8 ? 'acl_meniscus_template_a' : 'acl_meniscus_template_b'
+    if (isReturnPhase) return 'acl_meniscus_return_template'
+    return isStrengthPhase ? 'acl_meniscus_strength_template' : 'acl_meniscus_protection_template'
+  }
+
+  if (normalizedInjury.includes('patellar')) {
+    if (isReturnPhase) return 'patellar_tendon_return_template'
+    return isStrengthPhase ? 'patellar_tendon_strength_template' : 'patellar_tendon_protection_template'
+  }
+
+  if (normalizedInjury.includes('achilles')) {
+    if (isReturnPhase) return 'achilles_return_template'
+    return isStrengthPhase ? 'achilles_strength_template' : 'achilles_protection_template'
   }
 
   return 'default_conservative_template'

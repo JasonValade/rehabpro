@@ -1,4 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { readFileSync } from 'node:fs'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, vi } from 'vitest'
 import App from './App'
@@ -42,6 +43,13 @@ vi.mock('./services/rehabData', () => ({
   getActivePlan: vi.fn(),
   getCurrentPatient: vi.fn(),
   getProgressData: vi.fn(),
+  getTemplateKey: vi.fn((intake: { injuryType?: string; injury_type?: string; week: number }) => {
+    const injuryType = String(intake.injuryType || intake.injury_type || '').toLowerCase()
+    if (injuryType.includes('acl') && injuryType.includes('meniscus')) return 'acl_meniscus_protection_template'
+    if (injuryType.includes('achilles')) return 'achilles_protection_template'
+    if (injuryType.includes('patellar')) return 'patellar_tendon_protection_template'
+    return 'default_conservative_template'
+  }),
   getTodayPlan: vi.fn(),
   saveSessionLogs: vi.fn(),
 }))
@@ -99,6 +107,36 @@ const fakeItems = [
   },
 ]
 
+const starterTemplateExerciseNames = [
+  'Quad Sets',
+  'Heel Slides',
+  'Straight Leg Raise',
+  'Terminal Knee Extension',
+  'Wall Slides',
+  'Lateral Band Walks',
+  'Bilateral Calf Raises',
+  'Step-Ups',
+  'Single-Leg Romanian Deadlift Reach',
+  'Single-Leg Balance',
+  'Drop Landing Mechanics',
+  'Isometric Knee Extension',
+  'Spanish Squat - Isometric',
+  'Glute Bridge',
+  'Decline Eccentric Squat',
+  'Heavy Slow Goblet Squat',
+  'Bulgarian Split Squat',
+  'Pogo Hops',
+  'Plyometric Bounding',
+  'Ankle Pumps',
+  'Towel Calf Stretch',
+  'Bent-Knee Soleus Raise',
+  'Single-Leg Eccentric Calf Raise',
+  'Farmer Carry on Toes',
+  'Hopping Progression',
+  'Dynamic Warm-Up Flow',
+  'Farmer Carry',
+]
+
 function mockSignedOut() {
   authMocks.getSession.mockResolvedValue({ data: { session: null } })
 }
@@ -134,6 +172,16 @@ describe('App Supabase patient MVP flow', () => {
     vi.mocked(getProgressData).mockResolvedValue([])
   })
 
+  it('has Supabase seed rows for every starter template exercise', () => {
+    const originalSeed = readFileSync('supabase/migrations/202606290001_patient_mvp.sql', 'utf8')
+    const expandedSeed = readFileSync('supabase/migrations/202606300001_expand_starter_exercise_seeds.sql', 'utf8')
+    const seedSql = `${originalSeed}\n${expandedSeed}`
+
+    for (const exerciseName of starterTemplateExerciseNames) {
+      expect(seedSql).toContain(`'${exerciseName}'`)
+    }
+  })
+
   it('shows create account and sign-in states backed by Supabase auth', async () => {
     const user = userEvent.setup()
     mockSignedOut()
@@ -154,6 +202,29 @@ describe('App Supabase patient MVP flow', () => {
       password: 'patient123',
       options: { data: { full_name: 'Jason V.' } },
     })
+  })
+
+  it('uses immediate sign-in after signup for MVP testing when no signup session is returned', async () => {
+    const user = userEvent.setup()
+    mockSignedOut()
+    vi.mocked(getCurrentPatient).mockResolvedValue(null)
+    authMocks.signUp.mockResolvedValue({ data: { session: null }, error: null })
+    authMocks.signInWithPassword.mockResolvedValue({ data: { session: fakeSession }, error: null })
+
+    render(<App />)
+
+    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.type(screen.getByLabelText(/email/i), 'patient@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'patient123')
+    await user.click(screen.getAllByRole('button', { name: /^create account$/i })[1])
+
+    await waitFor(() => {
+      expect(authMocks.signInWithPassword).toHaveBeenCalledWith({
+        email: 'patient@example.com',
+        password: 'patient123',
+      })
+    })
+    expect(await screen.findByText('Injury intake')).toBeInTheDocument()
   })
 
   it('opens a returning patient demo without requiring Supabase auth', async () => {
@@ -181,7 +252,8 @@ describe('App Supabase patient MVP flow', () => {
     render(<App />)
 
     expect(await screen.findByText('Injury intake')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /create starter plan/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument()
+    expect(screen.getByText(/starter plan preview/i)).toBeInTheDocument()
     expect(screen.getByText(/educational support/i)).toBeInTheDocument()
   })
 
@@ -210,21 +282,44 @@ describe('App Supabase patient MVP flow', () => {
     render(<App />)
 
     await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
-    await user.clear(screen.getByLabelText(/baseline pain/i))
-    await user.type(screen.getByLabelText(/baseline pain/i), '5')
+    await user.click(screen.getByRole('button', { name: /next/i }))
+    await user.click(screen.getByRole('button', { name: /next/i }))
+    fireEvent.change(screen.getByLabelText(/baseline pain/i), { target: { value: '8' } })
+    fireEvent.change(screen.getByLabelText(/baseline swelling/i), { target: { value: '6' } })
+    expect(screen.getByText(/high pain/i)).toBeInTheDocument()
+    expect(screen.getByText(/major swelling/i)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /create starter plan/i }))
 
     await waitFor(() => expect(createPatientFromIntake).toHaveBeenCalled())
     expect(createPatientFromIntake).toHaveBeenCalledWith(fakeSession.user, expect.objectContaining({
       injuryType: 'ACL + Meniscus',
       week: 6,
-      baselinePain: 5,
-      baselineSwelling: 2,
+      baselinePain: 8,
+      baselineSwelling: 6,
       baselineRom: 90,
       baselineDifficulty: 5,
     }))
     expect(createStarterPlan).toHaveBeenCalledWith(fakePatient)
     expect(await screen.findByText(/Start today's rehab/i)).toBeInTheDocument()
+  })
+
+  it('shows Achilles-specific intake choices and preview exercises', async () => {
+    const user = userEvent.setup()
+    authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
+    vi.mocked(getCurrentPatient).mockResolvedValue(null)
+
+    render(<App />)
+
+    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.click(screen.getByRole('button', { name: /next/i }))
+    await user.click(screen.getByRole('button', { name: /^achilles$/i }))
+
+    expect(screen.getByRole('button', { name: /left achilles/i })).toBeInTheDocument()
+    expect(screen.getByText('Achilles Protection')).toBeInTheDocument()
+    expect(screen.getByText('Ankle Pumps')).toBeInTheDocument()
+    expect(screen.getByText('Towel Calf Stretch')).toBeInTheDocument()
+    expect(screen.queryByText('Quad Sets')).not.toBeInTheDocument()
+    expect(screen.queryByText('Heel Slides')).not.toBeInTheDocument()
   })
 
   it('renders today’s exercises from Supabase-shaped plan data', async () => {
