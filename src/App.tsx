@@ -1,800 +1,508 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
 import { C } from './constants/colors'
-import { AUTH_USERS } from './data/authUsers'
-import { MILESTONES, REHAB_TODAY, PATIENT_DEMO_PROFILES, PT_MSG, PT_PATIENTS, PT_THREADS, EXERCISE_NAMES, RETURNING_PATIENT_PROGRESS, RETURNING_PATIENT_COMPLETION_HISTORY } from './data/rehabMock'
-import { MOCK_CHECK_INS } from './data/mockCheckIns'
-import { MOCK_REPORTS } from './data/mockReports'
-import { EXERCISE_LIBRARY } from './data/exerciseLibrary'
-import { useLocalStorageState } from './hooks/useLocalStorageState'
-import { formatSymptomReportMessage } from './utils/reportChat.js'
+import { MILESTONES, PT_MSG } from './data/rehabMock'
 import { HomeView } from './components/patient/HomeView.jsx'
 import { TrainView } from './components/patient/TrainView.jsx'
 import { ProgressView } from './components/patient/ProgressView.jsx'
-import { ReportView } from './components/patient/ReportView.jsx'
-import { PtPortalView } from './components/pt/PtPortalView.jsx'
-import { PTChat } from './components/pt/PTChat.jsx'
+import { isSupabaseConfigured, supabase } from './lib/supabase'
+import {
+  createPatientFromIntake,
+  createSession,
+  createStarterPlan,
+  getActivePlan,
+  getCurrentPatient,
+  getProgressData,
+  getTodayPlan,
+  saveSessionLogs,
+  type IntakeInput,
+  type PatientRecord,
+  type ProgressLog,
+  type RehabItem,
+  type RehabPlanRecord,
+} from './services/rehabData'
 
-type AuthUser = {
-  username: string
-  role: 'patient' | 'pt'
-  name: string
-  patientId: string | null
-}
+const SAFETY_COPY = 'This plan is for educational support and does not replace your physical therapist or doctor’s instructions.'
 
 const TABS = [
   { id: 'home', icon: '⬡', label: 'HOME' },
   { id: 'train', icon: '◈', label: 'TRAIN' },
   { id: 'progress', icon: '◎', label: 'PROGRESS' },
-  { id: 'pt', icon: '⊕', label: 'MSG' },
-  { id: 'report', icon: '◇', label: 'REPORT' },
 ]
 
 const SCHEDULE = [
   { workout: 'Mobility + Rehab', details: 'Hip hinge, terminal knee extension, wall slides', highlight: 'Active this week' },
   { workout: 'Strength + Balance', details: 'Step-ups, band walks, single-leg balance', highlight: 'Repeats weekly' },
   { workout: 'Active Recovery', details: 'Compression, rest, low-load glute bridge', highlight: 'Repeats weekly' },
-  { workout: 'Load Tolerance', details: 'Goblet squat, mini squat, calf raise', highlight: 'Repeats weekly' },
-  { workout: 'Sport Prep', details: 'Agility ladder, hop progressions, landing', highlight: 'Repeats weekly' },
 ]
 
-const normalizePtPatient = (patient: any) => {
-  if (patient.id === 'pt_jason' && patient.avatar !== 'JV') {
-    return { ...patient, avatar: 'JV' }
-  }
-
-  return patient
+function AppStyles() {
+  return (
+    <style>{`
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { background: ${C.black}; color: ${C.bone}; }
+      body { min-height: 100vh; }
+      button, input, textarea, select { font: inherit; }
+      button, input, textarea, select { outline: none; }
+      button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid ${C.lime}; outline-offset: 3px; }
+      ::-webkit-scrollbar { width: 3px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: ${C.rim}; border-radius: 2px; }
+      input::placeholder, textarea::placeholder { color: ${C.muted}; }
+      button { cursor: pointer; }
+      button:disabled { cursor: not-allowed; }
+      @media (max-width: 520px) {
+        body { font-size: 14px; }
+      }
+    `}</style>
+  )
 }
 
-const visiblePtPatients = (patients: any[]) => patients.map(normalizePtPatient)
-
-const backfillDemoCheckIns = (checkIns: any[]) => {
-  const existingIds = new Set(checkIns.map((checkIn) => checkIn.id))
-  const missingDemoCheckIns = MOCK_CHECK_INS.filter((checkIn) => !existingIds.has(checkIn.id))
-
-  if (missingDemoCheckIns.length === 0) {
-    return checkIns
-  }
-
-  return [...checkIns, ...missingDemoCheckIns].sort((a, b) => a.ts - b.ts)
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <AppStyles />
+      <div
+        style={{
+          background: C.black,
+          minHeight: '100vh',
+          width: '100%',
+          fontFamily: "'DM Sans', sans-serif",
+        }}
+      >
+        {children}
+      </div>
+    </>
+  )
 }
 
-const formatThreadUpdated = (ts: number) => {
-  const minutes = Math.max(1, Math.round((Date.now() - ts) / 60000))
-  if (minutes < 60) return `${minutes}m ago`
-  const hours = Math.round(minutes / 60)
-  if (hours < 24) return `${hours}h ago`
-  return `${Math.round(hours / 24)}d ago`
-}
+function AuthScreen({
+  onSignIn,
+  onSignUp,
+  loading,
+  error,
+  message,
+}: {
+  onSignIn: (email: string, password: string) => void
+  onSignUp: (email: string, password: string, fullName: string) => void
+  loading: boolean
+  error: string
+  message: string
+}) {
+  const [mode, setMode] = useState<'signin' | 'signup'>('signup')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [fullName, setFullName] = useState('')
 
-const reportThreadId = (patientId: string) => `thread_${patientId}`
-
-const EXERCISE_ALIASES: Record<string, string> = {
-  slr: 'Straight Leg Raise',
-  bridges: 'Glute Bridge',
-  'calf raises': 'Bilateral Calf Raises',
-}
-
-const normalizeExerciseName = (name: string) => EXERCISE_ALIASES[name.trim().toLowerCase()] || name
-
-const makeExerciseItem = (name: string, index: number, previousItem?: any) => {
-  const normalizedName = normalizeExerciseName(name)
-  const source: any =
-    REHAB_TODAY.find((item) => item.name === normalizedName)
-  const libraryItem = EXERCISE_LIBRARY.find((exercise) => exercise.name === normalizedName)
-
-  return {
-    id: source?.id ?? libraryItem?.id ?? `assigned-${index + 1}`,
-    name: normalizedName,
-    sets: source?.sets ?? libraryItem?.sets ?? 3,
-    reps: source?.reps ?? libraryItem?.reps ?? '10',
-    done: previousItem?.done ?? source?.done ?? false,
-    tag: source?.tag ?? libraryItem?.stages?.[0]?.toUpperCase() ?? 'ASSIGNED',
-    videoStatus: source?.videoStatus,
-    youtubeId: source?.youtubeId,
-    youtubeUrl: source?.youtubeUrl ?? libraryItem?.youtubeUrl,
-    reminder: source?.reminder,
-    instructions: source?.instructions,
-    clinicalNotes: source?.clinicalNotes,
-    rest: libraryItem?.rest,
-  }
-}
-
-const assignedPlanItems = (patientId: string | null, patients: any[], previousItems: any[] = []) => {
-  const patient = patients.find((candidate) => candidate.id === patientId)
-  if (!patient?.assignedExercises?.length) {
-    return null
-  }
-
-  const previousByName = new Map(previousItems.map((item) => [normalizeExerciseName(item.name), item]))
-  return patient.assignedExercises.map((exercise: string, index: number) => {
-    const normalizedName = normalizeExerciseName(exercise)
-    return makeExerciseItem(normalizedName, index, previousByName.get(normalizedName))
-  })
-}
-
-const normalizeThreadIds = (threads: any[]) => {
-  const mergedByPatient = new Map<string, any>()
-
-  threads.forEach((thread) => {
-    const patientId = thread.patientId || thread.id?.replace(/^thread_/, '')
-    if (!patientId) return
-
-    const id = reportThreadId(patientId)
-    const existing = mergedByPatient.get(patientId)
-    if (!existing) {
-      mergedByPatient.set(patientId, { ...thread, id, patientId, messages: [...(thread.messages || [])] })
+  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (mode === 'signup') {
+      onSignUp(email, password, fullName)
       return
     }
+    onSignIn(email, password)
+  }
 
-    mergedByPatient.set(patientId, {
-      ...existing,
-      ...thread,
-      id,
-      patientId,
-      hasReport: existing.hasReport || thread.hasReport,
-      messages: [...(existing.messages || []), ...(thread.messages || [])]
-        .filter((message, index, messages) =>
-          index === messages.findIndex((candidate) => candidate.ts === message.ts && candidate.sender === message.sender && candidate.text === message.text),
-        )
-        .sort((a, b) => (a.ts || 0) - (b.ts || 0)),
-    })
-  })
+  return (
+    <Shell>
+      <div
+        style={{
+          minHeight: '100vh',
+          padding: '22px',
+          display: 'grid',
+          placeItems: 'center',
+        }}
+      >
+        <div style={{ width: '100%', maxWidth: 1080, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(340px, 420px)', gap: 24 }}>
+          <section style={{ border: `1px solid ${C.rim}`, background: C.deep, padding: 28, minHeight: 520, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.lime, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                Patient rehab MVP
+              </div>
+              <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 'clamp(58px, 8vw, 98px)', color: C.bone, lineHeight: 0.9, marginTop: 18 }}>
+                REHAB<span style={{ color: C.lime }}>PRO</span>
+              </h1>
+              <p style={{ maxWidth: 560, color: C.bone, fontSize: 16, lineHeight: 1.55, marginTop: 18 }}>
+                Create an account, complete injury intake, create a starter rehab plan, finish today&apos;s exercises, log symptoms, and watch progress update.
+              </p>
+            </div>
+            <div style={{ display: 'grid', gap: 10, marginTop: 24 }}>
+              {['Injury intake', 'Starter rehab plan', 'Today’s exercises', 'Session-based progress'].map((item) => (
+                <div key={item} style={{ border: `1px solid ${C.rim}`, background: C.panel, padding: 14 }}>
+                  <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1 }}>{item}</div>
+                </div>
+              ))}
+              <div style={{ border: `1px solid ${C.amber}55`, background: C.amberDim, padding: 14, color: C.bone, fontSize: 12, lineHeight: 1.5 }}>
+                {SAFETY_COPY}
+              </div>
+            </div>
+          </section>
 
-  return Array.from(mergedByPatient.values())
-}
-
-const mergeReportsIntoThreads = (threads: any[], reports: any[], patients: any[]) => {
-  const patientById = new Map(patients.map((patient) => [patient.id, patient]))
-  const reportsByPatient = reports.reduce((groups, report) => {
-    const patientReports = groups.get(report.patientId) || []
-    patientReports.push(report)
-    groups.set(report.patientId, patientReports)
-    return groups
-  }, new Map())
-
-  const mergedByPatient = new Map(
-    threads.map((thread) => [
-      thread.patientId,
-      {
-        ...thread,
-        messages: [...(thread.messages || [])],
-      },
-    ]),
+          <section style={{ border: `1px solid ${C.rim}`, background: C.panel, padding: 20, alignSelf: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+              {[
+                ['signup', 'Create account'],
+                ['signin', 'Sign in'],
+              ].map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setMode(id as 'signin' | 'signup')}
+                  style={{ flex: 1, border: `1px solid ${mode === id ? C.lime : C.rim}`, borderRadius: 8, background: mode === id ? C.lime : C.deep, color: mode === id ? C.black : C.bone, padding: '11px 10px', fontSize: 12, fontWeight: 700 }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
+              {mode === 'signup' ? (
+                <label style={{ display: 'grid', gap: 6, color: C.muted, fontSize: 11 }}>
+                  Full name
+                  <input value={fullName} onChange={(event) => setFullName(event.target.value)} required style={fieldStyle} />
+                </label>
+              ) : null}
+              <label style={{ display: 'grid', gap: 6, color: C.muted, fontSize: 11 }}>
+                Email
+                <input value={email} onChange={(event) => setEmail(event.target.value)} type="email" autoComplete="email" required style={fieldStyle} />
+              </label>
+              <label style={{ display: 'grid', gap: 6, color: C.muted, fontSize: 11 }}>
+                Password
+                <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} required minLength={6} style={fieldStyle} />
+              </label>
+              {!isSupabaseConfigured ? (
+                <div role="alert" style={{ border: `1px solid ${C.amber}55`, background: C.amberDim, color: C.bone, borderRadius: 8, padding: 12, fontSize: 12, lineHeight: 1.5 }}>
+                  Supabase is not configured yet. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your environment.
+                </div>
+              ) : null}
+              {error ? <div role="alert" style={{ color: C.red, fontSize: 12 }}>{error}</div> : null}
+              {message ? <div style={{ color: C.lime, fontSize: 12, lineHeight: 1.45 }}>{message}</div> : null}
+              <button type="submit" disabled={loading || !isSupabaseConfigured} style={{ border: 'none', borderRadius: 8, background: C.lime, color: C.black, padding: '14px 16px', fontWeight: 800, opacity: loading || !isSupabaseConfigured ? 0.5 : 1 }}>
+                {loading ? 'Working...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
+    </Shell>
   )
-
-  reports
-    .slice()
-    .sort((a, b) => a.ts - b.ts)
-    .forEach((report) => {
-      const patient = patientById.get(report.patientId)
-      const reportMessage = {
-        sender: 'patient',
-        text: formatSymptomReportMessage(report),
-        ts: report.ts,
-        reportId: report.id,
-      }
-      const thread =
-        mergedByPatient.get(report.patientId) || {
-          id: reportThreadId(report.patientId),
-          patientId: report.patientId,
-          patientName: patient?.name || 'Unknown patient',
-          updated: formatThreadUpdated(report.ts),
-          excerpt: `Symptom report: ${report.exercise || 'General'}`,
-          hasReport: false,
-          messages: [],
-        }
-
-      const alreadyInThread = thread.messages.some(
-        (message: any) =>
-          message.reportId === report.id ||
-          (message.sender === 'patient' && message.ts === report.ts && message.text === reportMessage.text),
-      )
-
-      if (!alreadyInThread) {
-        thread.messages = [...thread.messages, reportMessage].sort((a: any, b: any) => (a.ts || 0) - (b.ts || 0))
-      }
-
-      mergedByPatient.set(report.patientId, thread)
-    })
-
-  return Array.from(mergedByPatient.values()).map((thread) => {
-    const patientReports = reportsByPatient.get(thread.patientId) || []
-    const unreadReports = patientReports.filter((report: any) => !report.ptRead)
-    const latestReport = patientReports.slice().sort((a: any, b: any) => b.ts - a.ts)[0]
-    const latestMessage = thread.messages.slice().sort((a: any, b: any) => (b.ts || 0) - (a.ts || 0))[0]
-    const latestTs = latestMessage?.ts || latestReport?.ts
-    const latestIsReport = latestReport && (!latestMessage?.ts || latestReport.ts >= latestMessage.ts)
-
-    return {
-      ...thread,
-      hasReport: unreadReports.length > 0,
-      updated: latestTs ? formatThreadUpdated(latestTs) : thread.updated,
-      excerpt: latestIsReport
-        ? `Symptom report: ${latestReport.exercise || 'General'}`
-        : latestMessage?.text || thread.excerpt,
-    }
-  })
 }
 
-function mergeExerciseMetadata(savedItems: any[], sourceItems: any[]) {
-  return sourceItems.map((source) => {
-    const saved = savedItems.find((item) => item.id === source.id || item.name === source.name)
-    return saved ? { ...source, done: saved.done } : source
+const fieldStyle = {
+  width: '100%',
+  border: `1px solid ${C.rim}`,
+  borderRadius: 8,
+  background: C.deep,
+  color: C.bone,
+  padding: '13px 14px',
+  fontSize: 14,
+}
+
+function IntakeView({ onSubmit, loading, error }: { onSubmit: (input: IntakeInput) => void; loading: boolean; error: string }) {
+  const [form, setForm] = useState({
+    fullName: '',
+    injuryType: 'ACL + Meniscus',
+    injurySide: 'Left knee',
+    rehabPhase: 'Early Motion',
+    week: 6,
+    goal: 'Return to sport',
+    baselinePain: 2,
+    baselineSwelling: 2,
+    baselineRom: 90,
+    baselineDifficulty: 5,
   })
+
+  const setField = (field: string, value: string | number) => setForm((current) => ({ ...current, [field]: value }))
+
+  return (
+    <Shell>
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 20 }}>
+        <section style={{ width: '100%', maxWidth: 520, border: `1px solid ${C.rim}`, background: C.panel, padding: 20 }}>
+          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+            Injury intake
+          </div>
+          <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 42, color: C.bone, lineHeight: 1, marginTop: 8 }}>
+            Create starter plan
+          </h1>
+          <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.55, marginTop: 8 }}>{SAFETY_COPY}</p>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault()
+              onSubmit(form)
+            }}
+            style={{ display: 'grid', gap: 12, marginTop: 18 }}
+          >
+            <label style={intakeLabelStyle}>Full name<input required value={form.fullName} onChange={(event) => setField('fullName', event.target.value)} style={fieldStyle} /></label>
+            <label style={intakeLabelStyle}>
+              Injury type
+              <select value={form.injuryType} onChange={(event) => setField('injuryType', event.target.value)} style={fieldStyle}>
+                <option>ACL + Meniscus</option>
+                <option>Patellar Tendon</option>
+                <option>Achilles</option>
+                <option>Other</option>
+              </select>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <label style={intakeLabelStyle}>Side<input value={form.injurySide} onChange={(event) => setField('injurySide', event.target.value)} style={fieldStyle} /></label>
+              <label style={intakeLabelStyle}>Week<input type="number" min={0} value={form.week} onChange={(event) => setField('week', Number(event.target.value))} style={fieldStyle} /></label>
+            </div>
+            <label style={intakeLabelStyle}>Rehab phase<input value={form.rehabPhase} onChange={(event) => setField('rehabPhase', event.target.value)} style={fieldStyle} /></label>
+            <label style={intakeLabelStyle}>Goal<input value={form.goal} onChange={(event) => setField('goal', event.target.value)} style={fieldStyle} /></label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <label style={intakeLabelStyle}>Baseline pain<input type="number" min={0} max={10} value={form.baselinePain} onChange={(event) => setField('baselinePain', Number(event.target.value))} style={fieldStyle} /></label>
+              <label style={intakeLabelStyle}>Baseline swelling<input type="number" min={0} max={10} value={form.baselineSwelling} onChange={(event) => setField('baselineSwelling', Number(event.target.value))} style={fieldStyle} /></label>
+              <label style={intakeLabelStyle}>Baseline ROM<input type="number" min={0} value={form.baselineRom} onChange={(event) => setField('baselineRom', Number(event.target.value))} style={fieldStyle} /></label>
+              <label style={intakeLabelStyle}>Baseline difficulty<input type="number" min={0} max={10} value={form.baselineDifficulty} onChange={(event) => setField('baselineDifficulty', Number(event.target.value))} style={fieldStyle} /></label>
+            </div>
+            {error ? <div role="alert" style={{ color: C.red, fontSize: 12 }}>{error}</div> : null}
+            <button type="submit" disabled={loading} style={{ border: 'none', borderRadius: 8, background: C.lime, color: C.black, padding: 14, fontWeight: 800, opacity: loading ? 0.5 : 1 }}>
+              {loading ? 'Creating...' : 'Create starter plan'}
+            </button>
+          </form>
+        </section>
+      </div>
+    </Shell>
+  )
+}
+
+const intakeLabelStyle = {
+  display: 'grid',
+  gap: 6,
+  fontFamily: "'Fira Code', monospace",
+  fontSize: 10,
+  color: C.muted,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase' as const,
+}
+
+function makePatientProfile(patient: PatientRecord | null, plan: RehabPlanRecord | null, session: Session | null) {
+  if (!patient) return null
+
+  return {
+    id: patient.id,
+    name: session?.user.user_metadata?.full_name || session?.user.email || 'Patient',
+    injuryType: patient.injury_type,
+    injurySide: patient.injury_side,
+    rehabPhase: patient.rehab_phase,
+    phaseLabel: `Week ${patient.week}`,
+    week: patient.week,
+    assignedPlan: plan?.name || 'Starter rehab plan',
+    doctorScriptStatus: 'Starter plan created from injury intake',
+    ptOversightStatus: 'Educational support',
+    oversightMode: 'Starter plan',
+    provider: 'Care team',
+    planSummary: SAFETY_COPY,
+    homeSubhead: `Week ${patient.week} · ${patient.injury_type}`,
+    progressSubhead: `Week ${patient.week} · ${patient.injury_type}`,
+    nextStep: 'Complete today’s exercises if symptoms stay within your usual range.',
+    goal: patient.goal,
+  }
 }
 
 export default function RehabPro() {
   const contentScrollRef = useRef<HTMLDivElement | null>(null)
-  const [authUser, setAuthUser] = useLocalStorageState<AuthUser | null>('rehabpro:authUser', null)
-  const [viewMode, setViewMode] = useLocalStorageState<'patient' | 'pt'>('rehabpro:viewMode', authUser?.role ?? 'patient')
-  const [tab, setTab] = useLocalStorageState('rehabpro:tab', 'home')
-  const [rehabItems, setRehabItems] = useLocalStorageState<any[]>('rehabpro:rehabItems', REHAB_TODAY)
-  const [ptPatients, setPtPatients] = useLocalStorageState('rehabpro:ptPatients', visiblePtPatients(PT_PATIENTS))
-  const [selectedPatientId, setSelectedPatientId] = useLocalStorageState<string | null>('rehabpro:selectedPatientId', null)
-  const [ptThreads, setPtThreads] = useLocalStorageState('rehabpro:ptThreads', PT_THREADS)
-  const [activeThreadId, setActiveThreadId] = useLocalStorageState('rehabpro:activeThreadId', PT_THREADS[0].id)
-  const [reports, setReports] = useLocalStorageState('rehabpro:reports', MOCK_REPORTS)
-  const [checkIns, setCheckIns] = useLocalStorageState<any[]>('rehabpro:checkIns', MOCK_CHECK_INS)
-
-  const signedInUser = authUser
-  const patientUser = authUser?.role === 'patient' ? authUser : null
-  const currentRole: 'patient' | 'pt' = authUser?.role ?? viewMode
-  const patientProfiles = PATIENT_DEMO_PROFILES as Record<string, any>
-  const currentPatientProfile = patientUser?.patientId ? patientProfiles[patientUser.patientId] : null
-  const selectedPatientProfile = selectedPatientId ? patientProfiles[selectedPatientId] : null
-  const progressPatientId = patientUser?.patientId ?? selectedPatientId
-  const progressPatientProfile = currentRole === 'pt' ? selectedPatientProfile : currentPatientProfile
-  const demoPatientUsers = AUTH_USERS.filter((user) => user.role === 'patient' && user.patientId && patientProfiles[user.patientId])
-  const demoPtUser = AUTH_USERS.find((user) => user.role === 'pt')
-  const demoOptions = [...demoPatientUsers, ...(demoPtUser ? [demoPtUser] : [])]
-  const visiblePatients = useMemo(() => visiblePtPatients(ptPatients), [ptPatients])
-  const reportBackedThreads = useMemo(
-    () => mergeReportsIntoThreads(ptThreads, reports, visiblePatients),
-    [ptThreads, reports, visiblePatients],
-  )
+  const [session, setSession] = useState<Session | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [actionLoading, setActionLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [message, setMessage] = useState('')
+  const [patient, setPatient] = useState<PatientRecord | null>(null)
+  const [plan, setPlan] = useState<RehabPlanRecord | null>(null)
+  const [rehabItems, setRehabItems] = useState<RehabItem[]>([])
+  const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([])
+  const [tab, setTab] = useState('home')
 
   useEffect(() => {
-    if (authUser?.role === 'patient' && viewMode !== 'patient') {
-      setViewMode('patient')
+    if (!supabase) {
+      setAuthLoading(false)
+      return
     }
-  }, [authUser, viewMode, setViewMode])
 
-  useEffect(() => {
-    setCheckIns((prev) => backfillDemoCheckIns(prev))
-  }, [setCheckIns])
-
-  useEffect(() => {
-    setPtThreads((prev) => {
-      const normalized = normalizeThreadIds(prev)
-      return JSON.stringify(normalized) === JSON.stringify(prev) ? prev : normalized
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session)
+      setAuthLoading(false)
     })
-  }, [setPtThreads])
+
+    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession)
+    })
+
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  const loadPatientData = async (activeSession: Session) => {
+    const currentPatient = await getCurrentPatient(activeSession.user.id)
+    setPatient(currentPatient)
+
+    if (!currentPatient) {
+      setPlan(null)
+      setRehabItems([])
+      setProgressLogs([])
+      return
+    }
+
+    let activePlan = await getActivePlan(currentPatient.id)
+    if (!activePlan) {
+      activePlan = await createStarterPlan(currentPatient)
+    }
+
+    const [items, logs] = await Promise.all([
+      getTodayPlan(currentPatient.id),
+      getProgressData(currentPatient.id),
+    ])
+
+    setPlan(activePlan)
+    setRehabItems(items)
+    setProgressLogs(logs)
+  }
+
+  useEffect(() => {
+    if (!session) {
+      setPatient(null)
+      setPlan(null)
+      setRehabItems([])
+      setProgressLogs([])
+      return
+    }
+
+    setActionLoading(true)
+    setError('')
+    loadPatientData(session)
+      .catch((loadError) => setError(loadError.message || 'Could not load your rehab plan.'))
+      .finally(() => setActionLoading(false))
+  }, [session])
 
   useEffect(() => {
     if (tab === 'train') {
-      contentScrollRef.current?.scrollTo({ top: 0 })
+      contentScrollRef.current?.scrollTo?.({ top: 0 })
     }
   }, [tab])
 
-  useEffect(() => {
-    if (authUser?.role !== 'patient') {
-      return
-    }
+  const handleSignUp = async (email: string, password: string, fullName: string) => {
+    if (!supabase) return
+    setActionLoading(true)
+    setError('')
+    setMessage('')
 
-    setRehabItems((prev) => {
-      const sourceItems = assignedPlanItems(authUser.patientId, ptPatients, prev) ?? REHAB_TODAY
-      const merged = mergeExerciseMetadata(prev, sourceItems)
-      return JSON.stringify(merged) === JSON.stringify(prev) ? prev : merged
-    })
-  }, [authUser?.patientId, authUser?.role, ptPatients, setRehabItems])
-
-  const patientUnreadReports = patientUser?.patientId ? reports.filter((report) => report.patientId === patientUser.patientId && !report.ptRead).length : 0
-
-  const handleDemoLogin = (matchedUser: AuthUser) => {
-    setAuthUser(matchedUser)
-    setViewMode(matchedUser.role)
-    setTab('home')
-    setSelectedPatientId(matchedUser.role === 'pt' ? null : matchedUser.patientId || null)
-    setActiveThreadId(matchedUser.role === 'pt' ? '' : matchedUser.patientId ? reportThreadId(matchedUser.patientId) : reportThreadId(PT_THREADS[0].patientId))
-    if (matchedUser.role === 'patient') {
-      setRehabItems(assignedPlanItems(matchedUser.patientId, ptPatients) ?? REHAB_TODAY)
-    }
-  }
-
-  const handleLogout = () => {
-    setAuthUser(null)
-    setViewMode('patient')
-    setTab('home')
-    setSelectedPatientId(null)
-    setActiveThreadId(reportThreadId(PT_THREADS[0].patientId))
-  }
-
-  const handleResetDemo = () => {
-    Object.keys(window.localStorage)
-      .filter((key) => key.startsWith('rehabpro:'))
-      .forEach((key) => window.localStorage.removeItem(key))
-    window.location.reload()
-  }
-
-  const handleSelectPortalPatient = (patientId: string | null) => {
-    setSelectedPatientId(patientId)
-    if (!patientId) {
-      setActiveThreadId('')
-      return
-    }
-
-    setActiveThreadId(reportBackedThreads.find((thread) => thread.patientId === patientId)?.id || reportThreadId(patientId))
-  }
-
-  const handleAssignExercise = (patientId: string, exercise: string, cadence?: string) => {
-    setPtPatients((prev) =>
-      prev.map((patient) =>
-        patient.id === patientId && !patient.assignedExercises.includes(exercise)
-          ? {
-              ...patient,
-              assignedExercises: [...patient.assignedExercises, exercise],
-              planCadence: cadence
-                ? {
-                    ...(patient.planCadence || {}),
-                    [exercise]: cadence,
-                  }
-                : patient.planCadence,
-            }
-          : patient,
-      ),
-    )
-  }
-
-  const handleUnassignExercise = (patientId: string, exercise: string) => {
-    setPtPatients((prev) =>
-      prev.map((patient) =>
-        patient.id === patientId
-          ? {
-              ...patient,
-              assignedExercises: patient.assignedExercises.filter((item: string) => item !== exercise),
-              planCadence: Object.fromEntries(
-                Object.entries(patient.planCadence || {}).filter(([name]) => name !== exercise),
-              ),
-              planDose: Object.fromEntries(
-                Object.entries(patient.planDose || {}).filter(([name]) => name !== exercise),
-              ),
-            }
-          : patient,
-      ),
-    )
-  }
-
-  const handleUpdateExerciseCadence = (patientId: string, exercise: string, cadence: string) => {
-    setPtPatients((prev) =>
-      prev.map((patient) =>
-        patient.id === patientId
-          ? {
-              ...patient,
-              planCadence: {
-                ...(patient.planCadence || {}),
-                [exercise]: cadence,
-              },
-            }
-          : patient,
-      ),
-    )
-  }
-
-  const handleUpdateExerciseDose = (patientId: string, exercise: string, field: string, value: string) => {
-    setPtPatients((prev) =>
-      prev.map((patient) =>
-        patient.id === patientId
-          ? {
-              ...patient,
-              planDose: {
-                ...(patient.planDose || {}),
-                [exercise]: {
-                  ...((patient.planDose || {})[exercise] || {}),
-                  [field]: value,
-                },
-              },
-            }
-          : patient,
-      ),
-    )
-  }
-
-  const handleSendPtMessage = (threadId: string, text: string) => {
-    setPtThreads((prev) =>
-      prev.some((thread) => thread.id === threadId)
-        ? prev.map((thread) =>
-            thread.id === threadId
-              ? {
-                  ...thread,
-                  hasReport: false,
-                  updated: 'Now',
-                  excerpt: text,
-                  messages: [...thread.messages, { sender: 'pt', text, ts: Date.now() }],
-                }
-              : thread,
-          )
-        : [
-            ...prev,
-            {
-              id: threadId,
-              patientId: threadId.replace(/^thread_/, ''),
-              patientName: visiblePatients.find((patient) => reportThreadId(patient.id) === threadId)?.name || 'Unknown patient',
-              updated: 'Now',
-              excerpt: text,
-              hasReport: false,
-              messages: [{ sender: 'pt', text, ts: Date.now() }],
-            },
-          ],
-    )
-  }
-
-  const handleMarkReportReviewed = (reportId: string) => {
-    setReports((prev) =>
-      prev.map((report) =>
-        report.id === reportId ? { ...report, ptRead: true } : report,
-      ),
-    )
-  }
-
-  const handleSendPatientMessage = (threadId: string, text: string) => {
-    setPtThreads((prev) =>
-      prev.map((thread) =>
-        thread.id === threadId
-          ? {
-              ...thread,
-              updated: 'Now',
-              excerpt: text,
-              messages: [...thread.messages, { sender: 'patient', text, ts: Date.now() }],
-            }
-          : thread,
-      ),
-    )
-  }
-
-  const handleSubmitReport = (reportDetails: any) => {
-    const patientId = patientUser?.patientId
-    if (!patientId) {
-      return
-    }
-
-    const timestamp = Date.now()
-    const report = {
-      id: `r_${timestamp}`,
-      patientId,
-      ts: timestamp,
-      ...reportDetails,
-      ptRead: false,
-      ptReply: null,
-    }
-
-    setReports((prev) => [report, ...prev])
-
-    const reportMessage = formatSymptomReportMessage(reportDetails)
-    setPtThreads((prev) => {
-      const existingThread = prev.find((thread) => thread.patientId === patientId)
-
-      if (!existingThread) {
-        return [
-          ...prev,
-          {
-            id: `thread_${patientId}`,
-            patientId,
-            patientName: patientUser.name,
-            updated: 'Now',
-            excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
-            hasReport: true,
-            messages: [{ sender: 'patient', text: reportMessage, ts: timestamp, reportId: report.id }],
-          },
-        ]
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } },
+      })
+      if (signUpError) throw signUpError
+      if (data.session) {
+        setSession(data.session)
+      } else {
+        setMessage('Account created. Check your email to confirm your sign-in, then return here.')
       }
-
-      return prev.map((thread) =>
-        thread.patientId === patientId
-          ? {
-              ...thread,
-              updated: 'Now',
-              excerpt: `Symptom report: ${reportDetails.exercise || 'General'}`,
-              hasReport: true,
-              messages: [...thread.messages, { sender: 'patient', text: reportMessage, ts: timestamp, reportId: report.id }],
-            }
-          : thread,
-      )
-    })
-  }
-
-  const handleSubmitSessionCheckIn = (checkInDetails: any) => {
-    const patientId = patientUser?.patientId
-    if (!patientId) {
-      return
+    } catch (requestError: any) {
+      setError(requestError.message || 'Could not create account.')
+    } finally {
+      setActionLoading(false)
     }
-
-    setCheckIns((prev) => [
-      ...prev,
-      {
-        id: `session_${Date.now()}`,
-        patientId,
-        ts: Date.now(),
-        type: 'session',
-        ...checkInDetails,
-      },
-    ])
   }
 
-  if (!signedInUser) {
-    return (
-      <>
-        <style>{`
-          * { box-sizing: border-box; margin: 0; padding: 0; }
-          html, body { background: ${C.black}; color: ${C.bone}; }
-          body { min-height: 100vh; }
-          ::-webkit-scrollbar { width: 3px; }
-          ::-webkit-scrollbar-track { background: transparent; }
-          ::-webkit-scrollbar-thumb { background: ${C.rim}; border-radius: 2px; }
-          input::placeholder, textarea::placeholder { color: ${C.muted}; }
-          button { cursor: pointer; }
-          .demo-shell {
-            background: ${C.black};
-            min-height: 100vh;
-            width: 100%;
-            font-family: 'DM Sans', sans-serif;
-            padding: 20px 28px;
-            display: flex;
-            align-items: center;
-          }
-          .demo-layout {
-            width: 100%;
-            max-width: 1180px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
-            gap: 24px;
-            align-items: stretch;
-          }
-          .demo-hero {
-            min-height: min(560px, calc(100vh - 40px));
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 28px;
-            border: 1px solid ${C.rim};
-            background: ${C.deep};
-          }
-          .demo-kicker {
-            font-family: 'Fira Code', monospace;
-            font-size: 11px;
-            color: ${C.lime};
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-          }
-          .demo-title {
-            max-width: 680px;
-            font-family: 'Bebas Neue', cursive;
-            font-size: clamp(64px, 7.2vw, 96px);
-            color: ${C.bone};
-            line-height: 0.9;
-            margin-top: 18px;
-          }
-          .demo-copy {
-            max-width: 560px;
-            margin-top: 18px;
-            font-size: 16px;
-            line-height: 1.55;
-            color: ${C.bone};
-          }
-          .demo-points {
-            display: grid;
-            gap: 10px;
-            margin-top: 24px;
-          }
-          .demo-point {
-            padding: 14px;
-            border: 1px solid ${C.rim};
-            background: ${C.panel};
-            display: grid;
-            gap: 12px;
-          }
-          .demo-platform-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 10px;
-          }
-          .demo-platform-item {
-            border: 1px solid ${C.rim};
-            background: ${C.deep};
-            border-radius: 7px;
-            padding: 12px;
-            display: grid;
-            gap: 7px;
-          }
-          .demo-panel {
-            padding: 20px;
-            border: 1px solid ${C.rim};
-            background: ${C.panel};
-          }
-          .demo-options {
-            display: grid;
-            gap: 10px;
-          }
-          .demo-card {
-            width: 100%;
-            padding: 14px 16px;
-            border-radius: 8px;
-            border: 1px solid ${C.rim};
-            background: ${C.deep};
-            color: ${C.bone};
-            text-align: left;
-            display: grid;
-            gap: 8px;
-            transition: border-color 0.16s, background 0.16s, transform 0.16s;
-          }
-          .demo-card:hover,
-          .demo-card:focus-visible {
-            border-color: ${C.lime};
-            background: ${C.limeDim};
-            transform: translateY(-1px);
-          }
-          @media (max-width: 900px) {
-            .demo-shell { padding: 18px; align-items: flex-start; }
-            .demo-layout { grid-template-columns: 1fr; gap: 18px; }
-            .demo-hero { min-height: auto; padding: 22px; }
-            .demo-title { font-size: 58px; }
-            .demo-copy { font-size: 15px; }
-            .demo-points { margin-top: 22px; }
-            .demo-platform-grid { grid-template-columns: 1fr; }
-            .demo-panel { padding: 18px; }
-          }
-        `}</style>
-        <div className="demo-shell">
-          <div className="demo-layout">
-            <section className="demo-hero" aria-labelledby="demo-title">
-              <div>
-                <div className="demo-kicker">Two-sided rehab platform</div>
-                <h1 id="demo-title" className="demo-title">
-                  REHAB<span style={{ color: C.lime }}>PRO</span>
-                </h1>
-                <div className="demo-copy">
-                  A rehabilitation workflow platform connecting home exercise guidance, symptom reporting, and clinician review in one coordinated experience.
-                </div>
-              </div>
-              <div>
-                <div className="demo-points">
-                  <div className="demo-point">
-                    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      Connected care workflow
-                    </div>
-                    <div className="demo-platform-grid">
-                      <div className="demo-platform-item">
-                        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, color: C.bone, lineHeight: 1 }}>
-                          Patient mobile app
-                        </div>
-                        <div style={{ fontSize: 12, lineHeight: 1.45, color: C.bone }}>
-                          Guides prescribed home exercise, captures symptoms, and keeps progress visible between visits.
-                        </div>
-                      </div>
-                      <div className="demo-platform-item">
-                        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, color: C.bone, lineHeight: 1 }}>
-                          Clinician desktop portal
-                        </div>
-                        <div style={{ fontSize: 12, lineHeight: 1.45, color: C.bone }}>
-                          Gives PTs a work queue for patient review, symptom triage, messaging, and plan updates.
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="demo-point">
-                    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      Demo data
-                    </div>
-                    <div style={{ fontSize: 12, lineHeight: 1.45, color: C.bone }}>
-                      Demo-only prototype using local sample data. Not HIPAA-ready, not medical advice, and not for real patient or medical information.
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
+  const handleSignIn = async (email: string, password: string) => {
+    if (!supabase) return
+    setActionLoading(true)
+    setError('')
+    setMessage('')
 
-            <div className="demo-panel">
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 32, color: C.bone, marginBottom: 8, lineHeight: 1 }}>
-                Choose a demo
-              </div>
-              <div style={{ fontSize: 13, lineHeight: 1.45, color: C.bone, marginBottom: 14 }}>
-                Select a role-based walkthrough to view the patient mobile experience or the clinician desktop portal.
-              </div>
-              <div className="demo-options">
-                {demoOptions.map((user) => {
-                  const profile = user.patientId ? patientProfiles[user.patientId as string] : null
-                  const isPtDemo = user.role === 'pt'
-                  const demoDescription = isPtDemo
-                    ? 'Review a daily caseload, triage symptom reports, message patients, and adjust assigned exercises.'
-                    : 'Resume an active rehabilitation plan, review exercises, track progress, and report symptoms.'
-                  return (
-                    <button
-                      key={user.username}
-                      type="button"
-                      onClick={() => handleDemoLogin(user as AuthUser)}
-                      className="demo-card"
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
-                        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, letterSpacing: '0.04em' }}>
-                          {isPtDemo ? 'Physical therapist demo' : `${profile.demoLabel} demo`}
-                        </div>
-                        <div style={{ flexShrink: 0, fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                          {isPtDemo ? 'Desktop portal' : 'Mobile app'}
-                        </div>
-                      </div>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.bone }}>
-                        {isPtDemo ? `${user.name} · Care team dashboard` : `${profile.name} · ${profile.injuryType}`}
-                      </div>
-                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.bone, lineHeight: 1.45 }}>
-                        {demoDescription}
-                      </div>
-                      <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, lineHeight: 1.5 }}>
-                        {isPtDemo ? 'Caseload review · Reports · Plan updates' : `${profile.rehabPhase} · ${profile.ptOversightStatus}`}
-                      </div>
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  onClick={handleResetDemo}
-                  style={{ width: '100%', padding: '12px 16px', borderRadius: 8, border: `1px solid ${C.rim}`, background: 'transparent', color: C.muted, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: '0.08em' }}
-                >
-                  RESET DEMO DATA
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </>
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+      if (signInError) throw signInError
+      setSession(data.session)
+    } catch (requestError: any) {
+      setError(requestError.message || 'Could not sign in.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleSignOut = async () => {
+    await supabase?.auth.signOut()
+    setSession(null)
+    setTab('home')
+  }
+
+  const handleSubmitIntake = async (input: IntakeInput) => {
+    if (!session) return
+    setActionLoading(true)
+    setError('')
+
+    try {
+      const createdPatient = await createPatientFromIntake(session.user, input)
+      const createdPlan = await createStarterPlan(createdPatient)
+      const items = await getTodayPlan(createdPatient.id)
+      setPatient(createdPatient)
+      setPlan(createdPlan)
+      setRehabItems(items)
+      setProgressLogs([])
+      setTab('home')
+    } catch (requestError: any) {
+      setError(requestError.message || 'Could not create starter plan.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleSubmitSessionCheckIn = async (checkInDetails: any) => {
+    if (!patient) return
+    setActionLoading(true)
+    setError('')
+
+    try {
+      const workoutSession = await createSession(patient.id)
+      await saveSessionLogs({
+        patientId: patient.id,
+        sessionId: workoutSession.id,
+        rehabItems,
+        pain: checkInDetails.pain,
+        swelling: checkInDetails.swelling,
+        difficulty: checkInDetails.difficulty,
+      })
+      setProgressLogs(await getProgressData(patient.id))
+    } catch (requestError: any) {
+      setError(requestError.message || 'Could not save this workout.')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const patientProfile = useMemo(() => makePatientProfile(patient, plan, session), [patient, plan, session])
+  const progressBaseline = patient
+    ? [
+        {
+          label: 'Baseline',
+          pain: patient.baseline_pain,
+          swelling: patient.baseline_swelling,
+          rom: patient.baseline_rom,
+          difficulty: patient.baseline_difficulty,
+          completion: 0,
+        },
+      ]
+    : []
+
+  if (authLoading) {
+    return (
+      <Shell>
+        <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: C.muted }}>Loading RehabPro...</div>
+      </Shell>
     )
   }
 
-  if (currentRole === 'pt') {
-    return (
-      <PtPortalView
-        user={signedInUser}
-        patients={visiblePatients}
-        selectedPatientId={selectedPatientId}
-        reports={reports}
-        checkIns={checkIns}
-        threads={reportBackedThreads}
-        activeThreadId={activeThreadId}
-        exerciseNames={EXERCISE_NAMES}
-        onSelectPatient={handleSelectPortalPatient}
-        onSignOut={handleLogout}
-        onResetDemo={handleResetDemo}
-        onSendMessage={handleSendPtMessage}
-        onAssignExercise={handleAssignExercise}
-        onUnassignExercise={handleUnassignExercise}
-        onUpdateExerciseCadence={handleUpdateExerciseCadence}
-        onUpdateExerciseDose={handleUpdateExerciseDose}
-        onMarkReportReviewed={handleMarkReportReviewed}
-      />
-    )
+  if (!session) {
+    return <AuthScreen onSignIn={handleSignIn} onSignUp={handleSignUp} loading={actionLoading} error={error} message={message} />
+  }
+
+  if (!patient) {
+    return <IntakeView onSubmit={handleSubmitIntake} loading={actionLoading} error={error} />
   }
 
   return (
     <>
-      <style>{`
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { background: ${C.black}; color: ${C.bone}; }
-        body { min-height: 100vh; }
-        button, input, textarea { font: inherit; }
-        button, input, textarea { outline: none; }
-        button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid ${C.lime}; outline-offset: 3px; }
-        ::-webkit-scrollbar { width: 3px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: ${C.rim}; border-radius: 2px; }
-        input::placeholder, textarea::placeholder { color: ${C.muted}; }
-        button { cursor: pointer; }
-        @media (max-width: 520px) {
-          body { font-size: 14px; }
-        }
-        @keyframes bounce {
-          0%, 100% { opacity: 0.3; transform: translateY(0); }
-          50% { opacity: 1; transform: translateY(-3px); }
-        }
-      `}</style>
+      <AppStyles />
       <div
         style={{
           background: C.black,
@@ -810,50 +518,30 @@ export default function RehabPro() {
         }}
       >
         <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${C.rim}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
             <div>
               <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: '0.04em', lineHeight: 1 }}>
                 REHAB<span style={{ color: C.lime }}>PRO</span>
               </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 6 }}>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.08em' }}>
-                  {currentPatientProfile?.name ?? signedInUser.name} · {currentPatientProfile?.rehabPhase.toUpperCase() ?? 'PATIENT'}
-                </div>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.08em' }}>
-                  PATIENT MODE
-                </div>
+              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.08em', marginTop: 6 }}>
+                {patientProfile?.name} · {patient.rehab_phase.toUpperCase()}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 8, flexDirection: 'column', alignItems: 'flex-end' }}>
-              <button
-                type="button"
-                onClick={handleLogout}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: 12,
-                  border: `1px solid ${C.rim}`,
-                  background: C.panel,
-                  color: C.bone,
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontSize: 11,
-                  cursor: 'pointer',
-                }}
-              >
-                SIGN OUT
-              </button>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: '0.08em' }}>
-                PATIENT ACCESS
-              </div>
-            </div>
+            <button type="button" onClick={handleSignOut} style={{ padding: '8px 12px', borderRadius: 12, border: `1px solid ${C.rim}`, background: C.panel, color: C.bone, fontSize: 11 }}>
+              SIGN OUT
+            </button>
           </div>
+          <div style={{ border: `1px solid ${C.amber}45`, background: C.amberDim, borderRadius: 8, padding: 10, color: C.bone, fontSize: 11, lineHeight: 1.45, marginTop: 12 }}>
+            {SAFETY_COPY}
+          </div>
+          {error ? <div role="alert" style={{ color: C.red, fontSize: 12, marginTop: 10 }}>{error}</div> : null}
         </div>
 
         <div ref={contentScrollRef} style={{ flex: 1, padding: '16px 20px', paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0))', overflowY: 'auto' }}>
-          {tab === 'home' && <HomeView patientProfile={currentPatientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} notification={{ unreadReports: patientUnreadReports }} onNavigate={setTab} />}
+          {tab === 'home' && <HomeView patientProfile={patientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} onNavigate={setTab} />}
           {tab === 'train' && <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />}
-          {tab === 'progress' && <ProgressView patientProfile={progressPatientProfile} milestones={MILESTONES} progressData={RETURNING_PATIENT_PROGRESS} completionHistory={RETURNING_PATIENT_COMPLETION_HISTORY} checkIns={checkIns.filter((checkIn) => checkIn.patientId === progressPatientId && checkIn.type === 'session')} />}
-          {tab === 'pt' && (patientUser ? <PTChat patientId={patientUser.patientId} patientContext={{ injury: currentPatientProfile?.injuryType, stage: currentPatientProfile?.rehabPhase, goal: currentPatientProfile?.assignedPlan, assignedExercises: rehabItems.map((item) => item.name) }} ptThread={reportBackedThreads.find((thread) => thread.patientId === patientUser.patientId)} onSendPtMessage={handleSendPatientMessage} /> : null)}
-          {tab === 'report' && <ReportView rehabItems={rehabItems} onSubmit={handleSubmitReport} onOpenMessages={() => setTab('pt')} />}
+          {tab === 'progress' && <ProgressView patientProfile={patientProfile} milestones={MILESTONES} progressData={progressBaseline} completionHistory={[]} checkIns={progressLogs} />}
+          {actionLoading && tab !== 'train' ? <div style={{ color: C.muted, fontSize: 12, marginTop: 12 }}>Syncing...</div> : null}
         </div>
 
         <div
@@ -875,13 +563,13 @@ export default function RehabPro() {
             boxShadow: '0 -10px 30px rgba(0,0,0,0.42)',
           }}
         >
-          {TABS.map((t) => {
-            const active = tab === t.id
+          {TABS.map((item) => {
+            const active = tab === item.id
             return (
               <button
-                key={t.id}
+                key={item.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => setTab(item.id)}
                 style={{
                   flex: 1,
                   minWidth: 0,
@@ -895,38 +583,13 @@ export default function RehabPro() {
                   justifyContent: 'center',
                   gap: 4,
                   minHeight: 54,
-                  transition: 'background 0.15s, border-color 0.15s, transform 0.15s',
                 }}
               >
-                <div
-                  aria-hidden="true"
-                  style={{
-                    height: 21,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 20,
-                    lineHeight: 1,
-                    color: active ? C.lime : C.ghost,
-                    filter: active ? `drop-shadow(0 0 7px ${C.limeMid})` : 'none',
-                    transition: 'color 0.15s, filter 0.15s',
-                  }}
-                >
-                  {t.icon}
+                <div aria-hidden="true" style={{ height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, lineHeight: 1, color: active ? C.lime : C.ghost }}>
+                  {item.icon}
                 </div>
-                <div
-                  style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    fontFamily: "'Bebas Neue', cursive",
-                    fontSize: 11,
-                    lineHeight: 1,
-                    letterSpacing: '0.08em',
-                    color: active ? C.lime : C.muted,
-                    transition: 'color 0.15s',
-                  }}
-                >
-                  {t.label}
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Bebas Neue', cursive", fontSize: 11, lineHeight: 1, letterSpacing: '0.08em', color: active ? C.lime : C.muted }}>
+                  {item.label}
                 </div>
               </button>
             )

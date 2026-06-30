@@ -1,3 +1,4 @@
+import React from "react";
 import { Tag } from "../ui/Tag";
 import { C } from "../../constants/colors";
 

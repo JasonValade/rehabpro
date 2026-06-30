@@ -1,119 +1,263 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { beforeEach } from 'vitest'
+import { beforeEach, vi } from 'vitest'
 import App from './App'
+import {
+  createPatientFromIntake,
+  createSession,
+  createStarterPlan,
+  getActivePlan,
+  getCurrentPatient,
+  getProgressData,
+  getTodayPlan,
+  saveSessionLogs,
+} from './services/rehabData'
 
-describe('App', () => {
+const authMocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  onAuthStateChange: vi.fn(),
+  signUp: vi.fn(),
+  signInWithPassword: vi.fn(),
+  signOut: vi.fn(),
+  unsubscribe: vi.fn(),
+}))
+
+vi.mock('./lib/supabase', () => ({
+  isSupabaseConfigured: true,
+  supabase: {
+    auth: {
+      getSession: authMocks.getSession,
+      onAuthStateChange: authMocks.onAuthStateChange,
+      signUp: authMocks.signUp,
+      signInWithPassword: authMocks.signInWithPassword,
+      signOut: authMocks.signOut,
+    },
+  },
+}))
+
+vi.mock('./services/rehabData', () => ({
+  createPatientFromIntake: vi.fn(),
+  createSession: vi.fn(),
+  createStarterPlan: vi.fn(),
+  getActivePlan: vi.fn(),
+  getCurrentPatient: vi.fn(),
+  getProgressData: vi.fn(),
+  getTodayPlan: vi.fn(),
+  saveSessionLogs: vi.fn(),
+}))
+
+const fakeSession = {
+  user: {
+    id: 'user_1',
+    email: 'patient@example.com',
+    user_metadata: { full_name: 'Jason V.' },
+  },
+}
+
+const fakePatient = {
+  id: 'patient_1',
+  profile_id: 'user_1',
+  injury_type: 'ACL + Meniscus',
+  injury_side: 'Left knee',
+  rehab_phase: 'Early Motion',
+  week: 6,
+  goal: 'Return to basketball',
+  baseline_pain: 4,
+  baseline_swelling: 3,
+  baseline_rom: 90,
+  baseline_difficulty: 6,
+}
+
+const fakePlan = {
+  id: 'plan_1',
+  patient_id: 'patient_1',
+  template_key: 'acl_meniscus_template_a',
+  name: 'ACL + Meniscus Starter Plan A',
+  status: 'active',
+}
+
+const fakeItems = [
+  {
+    id: 'plan_exercise_1',
+    planExerciseId: 'plan_exercise_1',
+    exerciseId: 'exercise_1',
+    name: 'Heel Slides',
+    sets: 3,
+    reps: '12',
+    done: false,
+    tag: 'Daily',
+  },
+  {
+    id: 'plan_exercise_2',
+    planExerciseId: 'plan_exercise_2',
+    exerciseId: 'exercise_2',
+    name: 'Quad Sets',
+    sets: 3,
+    reps: '10',
+    done: false,
+    tag: 'Daily',
+  },
+]
+
+function mockSignedOut() {
+  authMocks.getSession.mockResolvedValue({ data: { session: null } })
+}
+
+function mockSignedIn({
+  patient = fakePatient,
+  items = fakeItems,
+  progress = [],
+}: {
+  patient?: any
+  items?: any
+  progress?: any
+} = {}) {
+  authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
+  vi.mocked(getCurrentPatient).mockResolvedValue(patient)
+  vi.mocked(getActivePlan).mockResolvedValue(fakePlan)
+  vi.mocked(getTodayPlan).mockResolvedValue(items as any)
+  vi.mocked(getProgressData).mockResolvedValue(progress as any)
+}
+
+describe('App Supabase patient MVP flow', () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    vi.clearAllMocks()
+    authMocks.onAuthStateChange.mockReturnValue({
+      data: { subscription: { unsubscribe: authMocks.unsubscribe } },
+    })
+    vi.mocked(createPatientFromIntake).mockResolvedValue(fakePatient)
+    vi.mocked(createStarterPlan).mockResolvedValue(fakePlan)
+    vi.mocked(createSession).mockResolvedValue({ id: 'session_1', started_at: new Date().toISOString(), completed_at: new Date().toISOString(), notes: null })
+    vi.mocked(saveSessionLogs).mockResolvedValue(undefined)
+    vi.mocked(getActivePlan).mockResolvedValue(fakePlan)
+    vi.mocked(getTodayPlan).mockResolvedValue(fakeItems as any)
+    vi.mocked(getProgressData).mockResolvedValue([])
   })
 
-  it('renders the RehabPro sign-in screen', () => {
-    render(<App />)
-    expect(screen.getByText('REHAB')).toBeInTheDocument()
-    expect(screen.getByText('PRO')).toBeInTheDocument()
-    expect(screen.getByText('Returning patient demo')).toBeInTheDocument()
-    expect(screen.getByText('Physical therapist demo')).toBeInTheDocument()
-  })
-
-  it('opens the desktop PT portal demo', async () => {
+  it('shows create account and sign-in states backed by Supabase auth', async () => {
     const user = userEvent.setup()
+    mockSignedOut()
+    authMocks.signUp.mockResolvedValue({ data: { session: fakeSession }, error: null })
 
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
-    expect(screen.getByText(/priority queue/i)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /active patients/i }))
-    await user.click(screen.getByRole('button', { name: /jason v/i }))
-    expect(screen.getAllByText('Jason V.').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: /back to dashboard/i })).toBeInTheDocument()
-    expect(screen.getByText('PT portal')).toBeInTheDocument()
+    expect((await screen.findAllByText('Create account')).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Create an account, complete injury intake/i)).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText(/full name/i), 'Jason V.')
+    await user.type(screen.getByLabelText(/email/i), 'patient@example.com')
+    await user.type(screen.getByLabelText(/password/i), 'patient123')
+    await user.click(screen.getAllByRole('button', { name: /^create account$/i })[1])
+
+    expect(authMocks.signUp).toHaveBeenCalledWith({
+      email: 'patient@example.com',
+      password: 'patient123',
+      options: { data: { full_name: 'Jason V.' } },
+    })
   })
 
-  it('lets priority queue cards be marked reviewed', async () => {
-    const user = userEvent.setup()
+  it('routes signed-in users without a patient record to injury intake', async () => {
+    authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
+    vi.mocked(getCurrentPatient).mockResolvedValue(null)
 
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    const priorityQueue = screen.getByText(/priority queue/i).closest('section')
-    expect(priorityQueue).not.toBeNull()
-
-    const reviewButtonsBefore = within(priorityQueue as HTMLElement).getAllByRole('button', { name: /mark .* priority item reviewed/i })
-    expect(reviewButtonsBefore).toHaveLength(2)
-
-    await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark sara k\.'s priority item reviewed/i }))
-
-    expect(within(priorityQueue as HTMLElement).queryByText(/Bulgarian Split Squat: pain 3\/5/i)).not.toBeInTheDocument()
-    expect(within(priorityQueue as HTMLElement).getByText(/Behind expected track/i)).toBeInTheDocument()
-    expect(within(priorityQueue as HTMLElement).queryByText(/Milestone due/i)).not.toBeInTheDocument()
-    expect(within(priorityQueue as HTMLElement).getAllByRole('button', { name: /mark .* priority item reviewed/i })).toHaveLength(reviewButtonsBefore.length)
-
-    await user.click(within(priorityQueue as HTMLElement).getByRole('button', { name: /mark mike t\.'s priority item reviewed/i }))
-
-    expect(within(priorityQueue as HTMLElement).queryByText(/high symptom report/i)).not.toBeInTheDocument()
+    expect(await screen.findByText('Injury intake')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /create starter plan/i })).toBeInTheDocument()
+    expect(screen.getByText(/educational support/i)).toBeInTheDocument()
   })
 
-  it('uses dashboard progression checks for pass/fail milestone decisions', async () => {
+  it('saves baseline intake values and creates a starter plan with a template key', async () => {
     const user = userEvent.setup()
+    authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
+    vi.mocked(getCurrentPatient).mockResolvedValue(null)
 
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
-    expect(screen.getByText(/progression checks/i)).toBeInTheDocument()
-    expect(screen.getAllByText(/pain-free jog/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/single-leg tendon loading/i)).toBeInTheDocument()
-    expect(screen.queryByText(/no recent check-in/i)).not.toBeInTheDocument()
+    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.clear(screen.getByLabelText(/baseline pain/i))
+    await user.type(screen.getByLabelText(/baseline pain/i), '5')
+    await user.click(screen.getByRole('button', { name: /create starter plan/i }))
 
-    await user.click(screen.getByRole('button', { name: /pass jason v\.'s pain-free jog milestone/i }))
-    expect(screen.queryByRole('button', { name: /pass jason v\.'s pain-free jog milestone/i })).not.toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /fail sara k\.'s single-leg tendon loading milestone/i }))
-    expect(screen.queryByRole('button', { name: /fail sara k\.'s single-leg tendon loading milestone/i })).not.toBeInTheDocument()
+    await waitFor(() => expect(createPatientFromIntake).toHaveBeenCalled())
+    expect(createPatientFromIntake).toHaveBeenCalledWith(fakeSession.user, expect.objectContaining({
+      injuryType: 'ACL + Meniscus',
+      week: 6,
+      baselinePain: 5,
+      baselineSwelling: 2,
+      baselineRom: 90,
+      baselineDifficulty: 5,
+    }))
+    expect(createStarterPlan).toHaveBeenCalledWith(fakePatient)
+    expect(await screen.findByText(/Start today's rehab/i)).toBeInTheDocument()
   })
 
-  it('lets the PT sidebar options open their portal sections', async () => {
+  it('renders today’s exercises from Supabase-shaped plan data', async () => {
     const user = userEvent.setup()
+    mockSignedIn()
 
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    expect(screen.getByRole('heading', { name: /today/i })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: /train/i }))
 
-    await user.click(screen.getByRole('button', { name: /^messages$/i }))
-    expect(screen.getByRole('heading', { name: /^messages$/i })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /exercise plans/i }))
-    expect(screen.getByRole('heading', { name: /exercise plans/i })).toBeInTheDocument()
-
-    await user.click(screen.getByText('Sara K.'))
-    expect(screen.getByRole('tab', { name: /plan/i })).toHaveAttribute('aria-selected', 'true')
-
-    await user.click(screen.getByRole('button', { name: /active patients/i }))
-    expect(screen.getByRole('heading', { name: /active patients/i })).toBeInTheDocument()
-
-    await user.click(screen.getByRole('button', { name: /^dashboard$/i }))
-    expect(screen.getByRole('heading', { name: /^today$/i })).toBeInTheDocument()
+    expect(screen.getByText('Heel Slides')).toBeInTheDocument()
+    expect(screen.getByText('Quad Sets')).toBeInTheDocument()
+    expect(screen.getByText('0/2 complete')).toBeInTheDocument()
   })
 
-  it('shows patient reports in the PT messages inbox and thread', async () => {
+  it('creates one session and multiple session logs when a workout is completed', async () => {
     const user = userEvent.setup()
+    mockSignedIn()
 
     render(<App />)
-    await user.click(screen.getByRole('button', { name: /physical therapist demo/i }))
 
-    await user.click(screen.getByRole('button', { name: /^messages$/i }))
-    await user.click(screen.getByRole('button', { name: /Sara K\.[\s\S]*Bulgarian Split Squat/i }))
+    await user.click(await screen.findByRole('button', { name: /train/i }))
+    await user.click(screen.getByRole('button', { name: /mark complete heel slides/i }))
+    await user.click(screen.getByRole('button', { name: /end session and check in/i }))
+    await user.click(screen.getByRole('button', { name: 'Pain 3 out of 10' }))
+    await user.click(screen.getByRole('button', { name: 'Swelling 2 out of 10' }))
+    await user.click(screen.getByRole('button', { name: 'Difficulty 6 out of 10' }))
+    await user.click(screen.getByRole('button', { name: /save session/i }))
 
-    expect(screen.getByRole('tab', { name: /messages/i })).toHaveAttribute('aria-selected', 'true')
-    expect(screen.getByText(/Symptom report/i)).toBeInTheDocument()
-    expect(screen.getByText('Bulgarian Split Squat')).toBeInTheDocument()
+    await waitFor(() => expect(createSession).toHaveBeenCalledWith('patient_1'))
+    expect(saveSessionLogs).toHaveBeenCalledWith(expect.objectContaining({
+      patientId: 'patient_1',
+      sessionId: 'session_1',
+      pain: 3,
+      swelling: 2,
+      difficulty: 6,
+      rehabItems: expect.arrayContaining([
+        expect.objectContaining({ name: 'Heel Slides', done: true }),
+        expect.objectContaining({ name: 'Quad Sets', done: false }),
+      ]),
+    }))
+  })
 
-    await user.click(screen.getByRole('button', { name: /mark as read/i }))
+  it('shows progress from baseline values and session logs', async () => {
+    const user = userEvent.setup()
+    mockSignedIn({
+      progress: [
+        {
+          id: 'session_1',
+          patientId: 'patient_1',
+          ts: Date.now(),
+          type: 'session',
+          pain: 2,
+          swelling: 1,
+          difficulty: 4,
+          done: 2,
+          total: 2,
+          completion: 100,
+        },
+      ],
+    })
 
-    expect(screen.getByText('Reviewed')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /mark as read/i })).not.toBeInTheDocument()
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: /progress/i }))
+
+    expect(screen.getByText(/ACL \+ Meniscus Recovery/i)).toBeInTheDocument()
+    expect(screen.getByText('90')).toBeInTheDocument()
+    expect(screen.getByText(/Strong consistency/i)).toBeInTheDocument()
   })
 })

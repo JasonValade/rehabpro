@@ -1,22 +1,28 @@
 # RehabPro
 
-RehabPro is a React + Vite rehabilitation dashboard prototype for patient rehab workflows. The app includes a lightweight Express backend, local state persistence, and a shared UI layer for tracking workouts, progress, symptom reports, and care-team messaging.
+RehabPro is a React + Vite rehabilitation app for the patient MVP loop: create account, complete injury intake, create a starter rehab plan, complete today’s exercises, log symptoms, and see progress update over time. The primary app now uses Supabase Auth and Supabase Postgres for patient data.
 
 > **Demo-only notice:** This repository is a prototype using mock patient data and demo-only authentication. It is not HIPAA-ready, is not intended for protected health information, and should not be used for real medical care or clinical decision-making.
 
 ## Product vision
 
-RehabPro should feel like a two-sided rehab platform with different interfaces for different daily contexts:
+The current MVP is patient-first and mobile-first:
 
-- **Patient app:** mobile-first for home rehab, exercise guidance, symptom reporting, progress, and PT messaging.
-- **PT portal:** desktop-first for reviewing a daily caseload, triaging symptom reports, scanning adherence and progress trends, messaging patients, and adjusting assigned exercises.
+1. Create account
+2. Injury intake
+3. Starter rehab plan
+4. Today’s exercises
+5. Complete workout
+6. Log pain, swelling, and difficulty
+7. Progress updates
 
-The demo should make that distinction clear: patients use RehabPro in the flow of training at home, while PTs use RehabPro as a computer-based clinical work queue on a normal review day.
+Starter plans are rule-based templates. RehabPro does not generate clinical plans with AI in this version.
 
 ## What this repo includes
 
 - `src/`: React application entrypoints, views, hooks, and UI components
-- `server/`: Express API server for patients, exercises, reports, milestones, and chat
+- `supabase/migrations/`: Supabase SQL schema, RLS policies, and starter exercise seed data
+- `server/`: optional legacy Express API server for local/demo endpoints
 - `vite.config.ts`: Vite dev server configuration and Vitest test runner setup
 - `tsconfig.json`: TypeScript workspace configuration
 - `eslint.config.js`: ESLint flat config supporting TypeScript and React
@@ -28,17 +34,24 @@ The demo should make that distinction clear: patients use RehabPro in the flow o
    ```bash
    npm install
    ```
-2. Start the backend API server:
+2. Create a Supabase project and apply the migration in `supabase/migrations/`.
+3. Copy `.env.example` to `.env` and add:
    ```bash
-   npm run dev:server
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
    ```
-3. Start the frontend development server:
+4. Start the frontend development server:
    ```bash
    npm run dev
    ```
-4. Open the app in the browser:
+5. Open the app in the browser:
    ```text
    http://localhost:5173
+   ```
+
+The Express backend is not required for the patient MVP loop. Run it only if you are working on legacy demo API or AI chat endpoints:
+   ```bash
+   npm run dev:server
    ```
 
 ## Deploy the website demo
@@ -55,12 +68,12 @@ The safest first deployment is a static frontend-only demo. Do not deploy the Ex
    Framework Preset: Vite
    Build Command: npm run deploy:check
    Output Directory: dist
-   Environment Variables: none required
+   Environment Variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
    ```
 5. Deploy and open the generated URL.
-6. Before sharing, run through the demo once and click `Reset demo data`.
+6. Before sharing, create a test account and run through the MVP loop.
 
-For the public demo, leave `OPENAI_API_KEY` unset and do not deploy the backend. The AI option will stay disabled as `Coming soon`, and the patient messaging/report flow works from local demo state.
+For the public demo, leave `OPENAI_API_KEY` unset and do not deploy the backend unless you intentionally need server features.
 
 ## Backend configuration
 
@@ -91,7 +104,7 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 - Label public deployments as demo-only and not for real patient information.
 - Keep `ENABLE_AI=false` and `ENABLE_DEMO_API=false` unless those server features are intentionally needed.
 - Set `CORS_ORIGIN` to the exact deployed frontend URL, such as `https://rehabpro-demo.example.com`.
-- Never enter real patient information. Authentication and local storage are demo-only and are not suitable for protected health information.
+- Never enter real patient information. Supabase Auth/Postgres makes the MVP persistent, but this repository is not HIPAA-ready.
 - Store secrets only in the hosting provider's environment-variable settings. Never expose them as Vite variables or commit `.env`.
 - The API applies security headers, strict request-size limits, input validation, and rate limits to write/AI endpoints.
 
@@ -108,13 +121,14 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 - `npm run test:watch` — run tests in watch mode
 - `npm run format` — format project files with Prettier
 
-## Demo flow
+## MVP flow
 
-1. Choose `Returning patient demo` or `Physical therapist demo`.
-2. Open `Train`, review an exercise, and mark one complete.
-3. Open `Report`, submit a symptom report, then click `View in PT messages`.
-4. Sign out, open `Physical therapist demo`, and show the structured report inside the PT conversation.
-5. Sign out and use `Reset demo data` before the next presentation.
+1. Create an account with email and password.
+2. Complete injury intake and baseline values.
+3. Click `Create starter plan`.
+4. Open `Train`, review exercises, and mark work complete.
+5. End the workout and log pain, swelling, and difficulty.
+6. Open `Progress` to see session-based trends compared with baseline.
 
 ## Architecture notes
 
@@ -122,7 +136,8 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 - The project now supports TypeScript through `tsconfig.json` and TS-aware linting.
 - ESLint is configured for React, TypeScript, hooks, and Vite refresh compatibility.
 - Vitest with React Testing Library covers component behavior and app smoke tests.
-- The backend server is intentionally lightweight and designed as a mock API layer for local development.
+- Supabase is the primary persistence layer for the patient MVP.
+- The backend server is optional and remains as a lightweight mock/API layer for local development.
 
 ## Notes
 
