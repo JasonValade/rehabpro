@@ -156,6 +156,24 @@ describe('App Supabase patient MVP flow', () => {
     })
   })
 
+  it('opens a returning patient demo without requiring Supabase auth', async () => {
+    const user = userEvent.setup()
+    mockSignedOut()
+
+    render(<App />)
+
+    await user.click(await screen.findByRole('button', { name: /try returning patient demo/i }))
+
+    expect(await screen.findByText(/KEEP MOVING, JASON/i)).toBeInTheDocument()
+    expect(screen.getByText(/Week 14 · ACL \+ Meniscus/i)).toBeInTheDocument()
+    expect(screen.getByText(/PT assigned/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /progress/i }))
+
+    expect(await screen.findByText('On Track')).toBeInTheDocument()
+    expect(screen.getAllByText('80%').length).toBeGreaterThan(0)
+  })
+
   it('routes signed-in users without a patient record to injury intake', async () => {
     authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
     vi.mocked(getCurrentPatient).mockResolvedValue(null)
@@ -165,6 +183,23 @@ describe('App Supabase patient MVP flow', () => {
     expect(await screen.findByText('Injury intake')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create starter plan/i })).toBeInTheDocument()
     expect(screen.getByText(/educational support/i)).toBeInTheDocument()
+  })
+
+  it('does not flash intake before a signed-in patient record resolves', async () => {
+    let resolvePatient: (patient: any) => void = () => {}
+    authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
+    vi.mocked(getCurrentPatient).mockReturnValue(new Promise((resolve) => {
+      resolvePatient = resolve
+    }) as any)
+
+    render(<App />)
+
+    expect(await screen.findByText(/loading rehabpro/i)).toBeInTheDocument()
+    expect(screen.queryByText('Injury intake')).not.toBeInTheDocument()
+
+    resolvePatient(null)
+
+    expect(await screen.findByText('Injury intake')).toBeInTheDocument()
   })
 
   it('saves baseline intake values and creates a starter plan with a template key', async () => {

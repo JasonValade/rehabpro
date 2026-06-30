@@ -1,7 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { C } from './constants/colors'
-import { MILESTONES, PT_MSG } from './data/rehabMock'
+import {
+  MILESTONES,
+  PATIENT_DEMO_PROFILES,
+  PT_MSG,
+  REHAB_TODAY,
+  RETURNING_PATIENT_COMPLETION_HISTORY,
+  RETURNING_PATIENT_PROGRESS,
+} from './data/rehabMock'
 import { HomeView } from './components/patient/HomeView.jsx'
 import { TrainView } from './components/patient/TrainView.jsx'
 import { ProgressView } from './components/patient/ProgressView.jsx'
@@ -79,12 +86,14 @@ function Shell({ children }: { children: React.ReactNode }) {
 function AuthScreen({
   onSignIn,
   onSignUp,
+  onUseReturningDemo,
   loading,
   error,
   message,
 }: {
   onSignIn: (email: string, password: string) => void
   onSignUp: (email: string, password: string, fullName: string) => void
+  onUseReturningDemo: () => void
   loading: boolean
   error: string
   message: string
@@ -178,6 +187,13 @@ function AuthScreen({
               {message ? <div style={{ color: C.lime, fontSize: 12, lineHeight: 1.45 }}>{message}</div> : null}
               <button type="submit" disabled={loading || !isSupabaseConfigured} style={{ border: 'none', borderRadius: 8, background: C.lime, color: C.black, padding: '14px 16px', fontWeight: 800, opacity: loading || !isSupabaseConfigured ? 0.5 : 1 }}>
                 {loading ? 'Working...' : mode === 'signup' ? 'Create account' : 'Sign in'}
+              </button>
+              <button
+                type="button"
+                onClick={onUseReturningDemo}
+                style={{ border: `1px solid ${C.rim}`, borderRadius: 8, background: C.deep, color: C.bone, padding: '13px 16px', fontWeight: 800 }}
+              >
+                Try returning patient demo
               </button>
             </form>
           </section>
@@ -275,7 +291,7 @@ const intakeLabelStyle = {
   textTransform: 'uppercase' as const,
 }
 
-function makePatientProfile(patient: PatientRecord | null, plan: RehabPlanRecord | null, session: Session | null) {
+function makePatientProfile(patient: PatientRecord | null, plan: RehabPlanRecord | null, session: Session | null, override?: Record<string, unknown> | null) {
   if (!patient) return null
 
   return {
@@ -296,6 +312,7 @@ function makePatientProfile(patient: PatientRecord | null, plan: RehabPlanRecord
     progressSubhead: `Week ${patient.week} · ${patient.injury_type}`,
     nextStep: 'Complete today’s exercises if symptoms stay within your usual range.',
     goal: patient.goal,
+    ...override,
   }
 }
 
@@ -311,24 +328,7 @@ export default function RehabPro() {
   const [rehabItems, setRehabItems] = useState<RehabItem[]>([])
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([])
   const [tab, setTab] = useState('home')
-
-  useEffect(() => {
-    if (!supabase) {
-      setAuthLoading(false)
-      return
-    }
-
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      setAuthLoading(false)
-    })
-
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession)
-    })
-
-    return () => data.subscription.unsubscribe()
-  }, [])
+  const [demoProfile, setDemoProfile] = useState<Record<string, unknown> | null>(null)
 
   const loadPatientData = async (activeSession: Session) => {
     const currentPatient = await getCurrentPatient(activeSession.user.id)
@@ -356,21 +356,69 @@ export default function RehabPro() {
     setProgressLogs(logs)
   }
 
+  const clearPatientData = () => {
+    setPatient(null)
+    setPlan(null)
+    setRehabItems([])
+    setProgressLogs([])
+  }
+
   useEffect(() => {
-    if (!session) {
-      setPatient(null)
-      setPlan(null)
-      setRehabItems([])
-      setProgressLogs([])
+    if (!supabase) {
+      setAuthLoading(false)
       return
     }
 
-    setActionLoading(true)
-    setError('')
-    loadPatientData(session)
-      .catch((loadError) => setError(loadError.message || 'Could not load your rehab plan.'))
-      .finally(() => setActionLoading(false))
-  }, [session])
+    const client = supabase
+    let mounted = true
+
+    const loadInitialSession = async () => {
+      try {
+        const { data } = await client.auth.getSession()
+        if (!mounted) return
+
+        if (!data.session) {
+          clearPatientData()
+          setSession(null)
+          return
+        }
+
+        await loadPatientData(data.session)
+        if (mounted) {
+          setSession(data.session)
+        }
+      } catch (loadError: any) {
+        if (mounted) {
+          setError(loadError.message || 'Could not load your rehab plan.')
+        }
+      } finally {
+        if (mounted) {
+          setAuthLoading(false)
+        }
+      }
+    }
+
+    loadInitialSession()
+
+    const { data } = client.auth.onAuthStateChange((event, nextSession) => {
+      if (!mounted) return
+
+      if (event === 'SIGNED_OUT' || !nextSession) {
+        clearPatientData()
+        setSession(null)
+        return
+      }
+
+      if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+        setSession(nextSession)
+      }
+    })
+
+    return () => {
+      mounted = false
+      data.subscription.unsubscribe()
+    }
+  }, [])
 
   useEffect(() => {
     if (tab === 'train') {
@@ -392,6 +440,7 @@ export default function RehabPro() {
       })
       if (signUpError) throw signUpError
       if (data.session) {
+        await loadPatientData(data.session)
         setSession(data.session)
       } else {
         setMessage('Account created. Check your email to confirm your sign-in, then return here.')
@@ -412,6 +461,9 @@ export default function RehabPro() {
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({ email, password })
       if (signInError) throw signInError
+      if (data.session) {
+        await loadPatientData(data.session)
+      }
       setSession(data.session)
     } catch (requestError: any) {
       setError(requestError.message || 'Could not sign in.')
@@ -421,8 +473,49 @@ export default function RehabPro() {
   }
 
   const handleSignOut = async () => {
+    setDemoProfile(null)
     await supabase?.auth.signOut()
     setSession(null)
+    clearPatientData()
+    setTab('home')
+  }
+
+  const handleUseReturningDemo = () => {
+    const profile = PATIENT_DEMO_PROFILES.pt_jason
+    const demoPatient = {
+      id: profile.id,
+      profile_id: 'demo_returning_user',
+      injury_type: profile.injuryType,
+      injury_side: profile.injurySide,
+      rehab_phase: profile.rehabPhase,
+      week: profile.week,
+      goal: 'Return to Basketball',
+      baseline_pain: 6,
+      baseline_swelling: 5,
+      baseline_rom: 92,
+      baseline_difficulty: 8,
+    } satisfies PatientRecord
+    const demoPlan = {
+      id: 'demo_returning_plan',
+      patient_id: demoPatient.id,
+      template_key: 'acl_meniscus_returning_demo',
+      name: profile.assignedPlan,
+      status: 'active',
+    } satisfies RehabPlanRecord
+
+    setSession(null)
+    setDemoProfile(profile)
+    setPatient(demoPatient)
+    setPlan(demoPlan)
+    setRehabItems(REHAB_TODAY.map((item) => ({
+      ...item,
+      id: String(item.id),
+      planExerciseId: `demo_plan_exercise_${item.id}`,
+      exerciseId: `demo_exercise_${item.id}`,
+    })))
+    setProgressLogs([])
+    setError('')
+    setMessage('')
     setTab('home')
   }
 
@@ -453,6 +546,25 @@ export default function RehabPro() {
     setError('')
 
     try {
+      if (demoProfile) {
+        setProgressLogs((current) => [
+          ...current,
+          {
+            id: `demo_session_${Date.now()}`,
+            patientId: patient.id,
+            ts: Date.now(),
+            type: 'session',
+            pain: checkInDetails.pain,
+            swelling: checkInDetails.swelling,
+            difficulty: checkInDetails.difficulty,
+            done: checkInDetails.done,
+            total: checkInDetails.total,
+            completion: checkInDetails.completion,
+          },
+        ])
+        return
+      }
+
       const workoutSession = await createSession(patient.id)
       await saveSessionLogs({
         patientId: patient.id,
@@ -470,8 +582,10 @@ export default function RehabPro() {
     }
   }
 
-  const patientProfile = useMemo(() => makePatientProfile(patient, plan, session), [patient, plan, session])
-  const progressBaseline = patient
+  const patientProfile = useMemo(() => makePatientProfile(patient, plan, session, demoProfile), [patient, plan, session, demoProfile])
+  const progressBaseline = demoProfile
+    ? RETURNING_PATIENT_PROGRESS
+    : patient
     ? [
         {
           label: 'Baseline',
@@ -483,6 +597,7 @@ export default function RehabPro() {
         },
       ]
     : []
+  const completionHistory = demoProfile ? RETURNING_PATIENT_COMPLETION_HISTORY : []
 
   if (authLoading) {
     return (
@@ -492,8 +607,8 @@ export default function RehabPro() {
     )
   }
 
-  if (!session) {
-    return <AuthScreen onSignIn={handleSignIn} onSignUp={handleSignUp} loading={actionLoading} error={error} message={message} />
+  if (!session && !demoProfile) {
+    return <AuthScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onUseReturningDemo={handleUseReturningDemo} loading={actionLoading} error={error} message={message} />
   }
 
   if (!patient) {
@@ -540,7 +655,7 @@ export default function RehabPro() {
         <div ref={contentScrollRef} style={{ flex: 1, padding: '16px 20px', paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0))', overflowY: 'auto' }}>
           {tab === 'home' && <HomeView patientProfile={patientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} onNavigate={setTab} />}
           {tab === 'train' && <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />}
-          {tab === 'progress' && <ProgressView patientProfile={patientProfile} milestones={MILESTONES} progressData={progressBaseline} completionHistory={[]} checkIns={progressLogs} />}
+          {tab === 'progress' && <ProgressView patientProfile={patientProfile} milestones={MILESTONES} progressData={progressBaseline} completionHistory={completionHistory} checkIns={progressLogs} />}
           {actionLoading && tab !== 'train' ? <div style={{ color: C.muted, fontSize: 12, marginTop: 12 }}>Syncing...</div> : null}
         </div>
 
