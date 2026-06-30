@@ -1013,7 +1013,7 @@ export default function RehabPro() {
   }
 
   const handleUseReturningDemo = () => {
-    const profile = PATIENT_DEMO_PROFILES.pt_jason
+    const profile = PATIENT_DEMO_PROFILES.pt_demo
     const demoPatient = {
       id: profile.id,
       profile_id: 'demo_returning_user',

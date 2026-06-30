@@ -58,7 +58,7 @@ const fakeSession = {
   user: {
     id: 'user_1',
     email: 'patient@example.com',
-    user_metadata: { full_name: 'Jason V.' },
+    user_metadata: { full_name: 'Demo Athlete' },
   },
 }
 
@@ -192,7 +192,7 @@ describe('App Supabase patient MVP flow', () => {
     expect((await screen.findAllByText('Create account')).length).toBeGreaterThan(0)
     expect(screen.getByText(/Create an account, complete injury intake/i)).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText(/full name/i), 'Jason V.')
+    await user.type(screen.getByLabelText(/full name/i), 'Demo Athlete')
     await user.type(screen.getByLabelText(/email/i), 'patient@example.com')
     await user.type(screen.getByLabelText(/password/i), 'patient123')
     await user.click(screen.getAllByRole('button', { name: /^create account$/i })[1])
@@ -200,7 +200,7 @@ describe('App Supabase patient MVP flow', () => {
     expect(authMocks.signUp).toHaveBeenCalledWith({
       email: 'patient@example.com',
       password: 'patient123',
-      options: { data: { full_name: 'Jason V.' } },
+      options: { data: { full_name: 'Demo Athlete' } },
     })
   })
 
@@ -213,7 +213,7 @@ describe('App Supabase patient MVP flow', () => {
 
     render(<App />)
 
-    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.type(await screen.findByLabelText(/full name/i), 'Demo Athlete')
     await user.type(screen.getByLabelText(/email/i), 'patient@example.com')
     await user.type(screen.getByLabelText(/password/i), 'patient123')
     await user.click(screen.getAllByRole('button', { name: /^create account$/i })[1])
@@ -235,7 +235,7 @@ describe('App Supabase patient MVP flow', () => {
 
     await user.click(await screen.findByRole('button', { name: /try returning patient demo/i }))
 
-    expect(await screen.findByText(/KEEP MOVING, JASON/i)).toBeInTheDocument()
+    expect(await screen.findByText(/KEEP MOVING, DEMO/i)).toBeInTheDocument()
     expect(screen.getByText(/Week 14 · ACL \+ Meniscus/i)).toBeInTheDocument()
     expect(screen.getByText(/PT assigned/i)).toBeInTheDocument()
 
@@ -281,7 +281,7 @@ describe('App Supabase patient MVP flow', () => {
 
     render(<App />)
 
-    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.type(await screen.findByLabelText(/full name/i), 'Demo Athlete')
     await user.click(screen.getByRole('button', { name: /next/i }))
     await user.click(screen.getByRole('button', { name: /next/i }))
     fireEvent.change(screen.getByLabelText(/baseline pain/i), { target: { value: '8' } })
@@ -310,7 +310,7 @@ describe('App Supabase patient MVP flow', () => {
 
     render(<App />)
 
-    await user.type(await screen.findByLabelText(/full name/i), 'Jason V.')
+    await user.type(await screen.findByLabelText(/full name/i), 'Demo Athlete')
     await user.click(screen.getByRole('button', { name: /next/i }))
     await user.click(screen.getByRole('button', { name: /^achilles$/i }))
 

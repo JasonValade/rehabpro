@@ -4,8 +4,8 @@ export const AUTH_USERS = [
     email: "returning@rehabpro.demo",
     password: "patient123",
     role: "patient",
-    name: "Jason V.",
-    patientId: "pt_jason",
+    name: "Demo Athlete",
+    patientId: "pt_demo",
   },
   {
     username: "therapist",

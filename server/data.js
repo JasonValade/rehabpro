@@ -1,7 +1,7 @@
 export const patients = [
   {
-    id: "pt_jason",
-    name: "Jason M.",
+    id: "pt_demo",
+    name: "Demo Athlete",
     age: 22,
     injury: "ACL / Meniscus",
     stage: "Early Motion",
@@ -12,11 +12,11 @@ export const patients = [
     pain: 2,
     rom: "0-118",
     ptNote: "Full extension restored. Keep monitoring swelling after longer walking days.",
-    assignedProvider: "Dr. Valade, PT",
+    assignedProvider: "Dr. Rivera, PT",
     goal: "Return to basketball and lifting",
     homeEquipment: "Resistance bands, step, light dumbbells",
     visitFrequency: "2x/week",
-    avatar: "JM",
+    avatar: "DP",
     assignedExercises: ["e1", "e2", "e3", "e4", "e5"],
   },
   {
@@ -76,7 +76,7 @@ export const reports = [
   },
   {
     id: "r2",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 2,
     exercise: "Terminal Knee Extension",
     swelling: 1,
@@ -92,15 +92,15 @@ export const reports = [
 export const initialMessages = [
   {
     id: "msg-0",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     sender: "assistant",
     channel: "ai",
-    text: "What's up Jason. Checked your session data — wall slides look solid. What do you need today?",
+    text: "What's up. Checked your session data — wall slides look solid. What do you need today?",
     ts: Date.now() - 1000 * 60 * 60 * 3,
   },
   {
     id: "msg-1",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     sender: "patient",
     text: "Keep today lighter if swelling shows up after the heel slides.",
     ts: Date.now() - 1000 * 60 * 60 * 2,

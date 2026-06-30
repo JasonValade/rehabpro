@@ -3,11 +3,11 @@ import { vi } from 'vitest'
 import { PTChat } from './PTChat.jsx'
 
 const props = {
-  patientId: 'pt_jason',
-  patientName: 'Jason V.',
+  patientId: 'pt_demo',
+  patientName: 'Demo Athlete',
   patientContext: { injury: 'ACL / Meniscus' },
   ptThread: {
-    id: 'thread_pt_jason',
+    id: 'thread_pt_demo',
     messages: [{ sender: 'pt', text: 'Keep today lighter.', ts: 1 }],
   },
   onSendPtMessage: vi.fn(),
@@ -37,7 +37,7 @@ describe('PTChat', () => {
 
     fireEvent.change(screen.getByLabelText('Message your PT'), { target: { value: 'My knee is sore.' } })
     fireEvent.click(screen.getByLabelText('Send message'))
-    expect(props.onSendPtMessage).toHaveBeenCalledWith('thread_pt_jason', 'My knee is sore.')
+    expect(props.onSendPtMessage).toHaveBeenCalledWith('thread_pt_demo', 'My knee is sore.')
   })
 
   it('shows a direct care-team message without an empty conversation bubble', async () => {

@@ -1,7 +1,7 @@
 export const MOCK_CHECK_INS = [
   {
     id: "check-jason-4",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 24 * 6,
     type: "session",
     pain: 4,
@@ -17,7 +17,7 @@ export const MOCK_CHECK_INS = [
   },
   {
     id: "check-jason-3",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 24 * 4,
     type: "session",
     pain: 3,
@@ -33,7 +33,7 @@ export const MOCK_CHECK_INS = [
   },
   {
     id: "check-jason-2",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 24 * 2,
     type: "session",
     pain: 2,
@@ -49,7 +49,7 @@ export const MOCK_CHECK_INS = [
   },
   {
     id: "check-1",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 20,
     type: "session",
     pain: 2,

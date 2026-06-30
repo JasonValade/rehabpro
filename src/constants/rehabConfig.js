@@ -22,5 +22,5 @@ export const CARE_PATH_OPTIONS = [
 
 export const CLINIC_TEAM = {
   name: "RehabPro Sports PT",
-  providers: ["Dr. Valade, PT", "Alex Rivera, PTA", "Morgan Lee, ATC"],
+  providers: ["Dr. Rivera, PT", "Alex Rivera, PTA", "Morgan Lee, ATC"],
 };

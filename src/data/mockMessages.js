@@ -1,7 +1,7 @@
 export const MOCK_MESSAGES = [
   {
     id: "msg-1",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     sender: "pt",
     text: "Keep today lighter if swelling shows up after the heel slides.",
     ts: Date.now() - 1000 * 60 * 60 * 3,

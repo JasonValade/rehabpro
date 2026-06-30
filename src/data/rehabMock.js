@@ -104,10 +104,10 @@ export const RETURNING_PATIENT_COMPLETION_HISTORY = [
 ];
 
 export const PATIENT_DEMO_PROFILES = {
-  pt_jason: {
-    id: "pt_jason",
+  pt_demo: {
+    id: "pt_demo",
     demoLabel: "Returning patient",
-    name: "Jason V.",
+    name: "Demo Athlete",
     injuryType: "ACL + Meniscus",
     injurySide: "Left knee",
     rehabPhase: "Early Motion",
@@ -141,15 +141,15 @@ export const PT_MSG = {
 
 export const PT_PATIENTS = [
   {
-    id: "pt_jason",
-    name: "Jason V.",
+    id: "pt_demo",
+    name: "Demo Athlete",
     age: 22,
     injury: "ACL + Meniscus",
     stage: "Early Motion",
     week: 14,
     status: "At home",
     profile: "Competitive basketball athlete",
-    avatar: "JV",
+    avatar: "DP",
     color: "#2dd4bf",
     assignedExercises: ["Terminal Knee Extension", "Wall Slides", "Straight Leg Raise", "Lateral Band Walks", "Bilateral Calf Raises"],
     alert: true,
@@ -200,9 +200,9 @@ export const PT_PATIENTS = [
 
 export const PT_THREADS = [
   {
-    id: "thread_pt_jason",
-    patientId: "pt_jason",
-    patientName: "Jason V.",
+    id: "thread_pt_demo",
+    patientId: "pt_demo",
+    patientName: "Demo Athlete",
     updated: "2h ago",
     excerpt: "Knee is tight after the heel slides. Need to adjust today.",
     hasReport: true,

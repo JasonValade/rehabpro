@@ -13,7 +13,7 @@ export const MOCK_REPORTS = [
   },
   {
     id: "r2",
-    patientId: "pt_jason",
+    patientId: "pt_demo",
     ts: Date.now() - 1000 * 60 * 60 * 2,
     exercise: "Terminal Knee Extension",
     swelling: 1,
