@@ -140,7 +140,7 @@ function AppStyles() {
   return (
     <style>{`
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { background: ${C.black}; color: ${C.bone}; }
+      html, body, #root { background: ${C.black}; color: ${C.bone}; height: 100%; overflow: hidden; }
       body { min-height: 100vh; }
       button, input, textarea, select { font: inherit; }
       button, input, textarea, select { outline: none; }
@@ -415,8 +415,9 @@ function Shell({ children }: { children: React.ReactNode }) {
       <div
         style={{
           background: C.black,
-          minHeight: '100vh',
+          height: '100vh',
           width: '100%',
+          overflow: 'hidden',
           fontFamily: "'DM Sans', sans-serif",
         }}
       >
@@ -459,54 +460,132 @@ function AuthScreen({
     <Shell>
       <div
         style={{
-          minHeight: '100vh',
-          padding: '22px',
+          height: '100vh',
+          overflow: 'hidden',
+          padding: '24px',
           display: 'grid',
           placeItems: 'center',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 1080, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(340px, 420px)', gap: 24 }}>
-          <section style={{ border: `1px solid ${C.rim}`, background: C.deep, padding: 28, minHeight: 520, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div
+          style={{
+            width: '100%',
+            maxWidth: 1140,
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.05fr) minmax(340px, 420px)',
+            gap: 24,
+            alignItems: 'center',
+          }}
+        >
+          <section
+            style={{
+              border: `1px solid ${C.rim}`,
+              borderRadius: 22,
+              background: `linear-gradient(135deg, ${C.deep} 0%, ${C.panel} 100%)`,
+              padding: 30,
+              minHeight: 560,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.24)',
+            }}
+          >
             <div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.lime, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  border: `1px solid ${C.rim}`,
+                  borderRadius: 999,
+                  background: 'rgba(10, 15, 20, 0.6)',
+                  padding: '7px 10px',
+                  fontFamily: "'Fira Code', monospace",
+                  fontSize: 11,
+                  color: C.lime,
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: 999, background: C.lime, display: 'inline-block' }} />
                 Patient rehab MVP
               </div>
-              <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 'clamp(58px, 8vw, 98px)', color: C.bone, lineHeight: 0.9, marginTop: 18 }}>
+              <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 'clamp(56px, 8vw, 92px)', color: C.bone, lineHeight: 0.9, marginTop: 18 }}>
                 REHAB<span style={{ color: C.lime }}>PRO</span>
               </h1>
-              <p style={{ maxWidth: 560, color: C.bone, fontSize: 16, lineHeight: 1.55, marginTop: 18 }}>
-                Create an account, complete injury intake, create a starter rehab plan, finish today&apos;s exercises, log symptoms, and watch progress update.
+              <p style={{ maxWidth: 580, color: C.bone, fontSize: 16, lineHeight: 1.55, marginTop: 16 }}>
+                A focused patient-first rehab experience for intake, guided exercises, symptom logging, and progress tracking.
               </p>
+              <p style={{ maxWidth: 580, color: C.muted, fontSize: 13, lineHeight: 1.55, marginTop: 10 }}>
+                Create an account, complete injury intake, and move through the guided rehab flow.
+              </p>
+              <div style={{ marginTop: 12, color: C.lime, fontSize: 12, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+                MVP demo flow
+              </div>
+
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 18 }}>
+                {['Injury intake', 'Starter plan', 'Training flow', 'Progress view'].map((item) => (
+                  <div key={item} style={{ border: `1px solid ${C.rim}`, borderRadius: 999, background: C.panel, padding: '8px 12px', color: C.bone, fontSize: 12, fontWeight: 700 }}>
+                    {item}
+                  </div>
+                ))}
+              </div>
             </div>
+
             <div style={{ display: 'grid', gap: 10, marginTop: 24 }}>
-              {['Injury intake', 'Starter rehab plan', 'Today’s exercises', 'Session-based progress'].map((item) => (
-                <div key={item} style={{ border: `1px solid ${C.rim}`, background: C.panel, padding: 14 }}>
-                  <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1 }}>{item}</div>
-                </div>
-              ))}
-              <div style={{ border: `1px solid ${C.amber}55`, background: C.amberDim, padding: 14, color: C.bone, fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {[
+                  { title: '1. Create account', detail: 'Start with email and password' },
+                  { title: '2. Complete intake', detail: 'Choose your injury path and baseline' },
+                  { title: '3. Train and log', detail: 'Finish workouts and record symptoms' },
+                  { title: '4. Review progress', detail: 'Watch trends update over time' },
+                ].map((step) => (
+                  <div key={step.title} style={{ border: `1px solid ${C.rim}`, borderRadius: 12, background: C.panel, padding: 13 }}>
+                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: C.bone, lineHeight: 1 }}>{step.title}</div>
+                    <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{step.detail}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ border: `1px solid ${C.amber}55`, borderRadius: 12, background: C.amberDim, padding: 14, color: C.bone, fontSize: 12, lineHeight: 1.5 }}>
+                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.amber, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Clinical note</div>
                 {SAFETY_COPY}
               </div>
             </div>
           </section>
 
-          <section style={{ border: `1px solid ${C.rim}`, background: C.panel, padding: 20, alignSelf: 'center' }}>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+          <section style={{ border: `1px solid ${C.rim}`, borderRadius: 20, background: C.panel, padding: 20, alignSelf: 'center', boxShadow: '0 14px 48px rgba(0, 0, 0, 0.2)', maxHeight: 'calc(100vh - 48px)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16, padding: '4px', border: `1px solid ${C.rim}`, borderRadius: 12, background: 'rgba(10, 15, 20, 0.55)' }}>
               {[
                 ['signup', 'Create account'],
                 ['signin', 'Sign in'],
-              ].map(([id, label]) => (
-                <button
-                  key={id}
-                  type="button"
-                  onClick={() => setMode(id as 'signin' | 'signup')}
-                  style={{ flex: 1, border: `1px solid ${mode === id ? C.lime : C.rim}`, borderRadius: 8, background: mode === id ? C.lime : C.deep, color: mode === id ? C.black : C.bone, padding: '11px 10px', fontSize: 12, fontWeight: 700 }}
-                >
-                  {label}
-                </button>
-              ))}
+              ].map(([id, label]) => {
+                const active = mode === id
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setMode(id as 'signin' | 'signup')}
+                    style={{
+                      flex: 1,
+                      border: `1px solid ${active ? C.lime : 'transparent'}`,
+                      borderRadius: 8,
+                      background: active ? C.lime : 'transparent',
+                      color: active ? C.black : C.bone,
+                      padding: '11px 10px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      transition: 'all 180ms ease',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
             </div>
-            <form onSubmit={submit} style={{ display: 'grid', gap: 12 }}>
+            <div style={{ color: C.muted, fontSize: 12, lineHeight: 1.5, marginBottom: 14 }}>
+              Use the demo flow to explore the patient MVP in a few minutes.
+            </div>
+            <form onSubmit={submit} style={{ display: 'grid', gap: 12, transition: 'all 180ms ease' }}>
               {mode === 'signup' ? (
                 <label style={{ display: 'grid', gap: 6, color: C.muted, fontSize: 11 }}>
                   Full name
@@ -528,13 +607,13 @@ function AuthScreen({
               ) : null}
               {error ? <div role="alert" style={{ color: C.red, fontSize: 12 }}>{error}</div> : null}
               {message ? <div style={{ color: C.lime, fontSize: 12, lineHeight: 1.45 }}>{message}</div> : null}
-              <button type="submit" disabled={loading || !isSupabaseConfigured} style={{ border: 'none', borderRadius: 8, background: C.lime, color: C.black, padding: '14px 16px', fontWeight: 800, opacity: loading || !isSupabaseConfigured ? 0.5 : 1 }}>
+              <button type="submit" disabled={loading || !isSupabaseConfigured} style={{ border: 'none', borderRadius: 10, background: C.lime, color: C.black, padding: '14px 16px', fontWeight: 800, opacity: loading || !isSupabaseConfigured ? 0.5 : 1 }}>
                 {loading ? 'Working...' : mode === 'signup' ? 'Create account' : 'Sign in'}
               </button>
               <button
                 type="button"
                 onClick={onUseReturningDemo}
-                style={{ border: `1px solid ${C.rim}`, borderRadius: 8, background: C.deep, color: C.bone, padding: '13px 16px', fontWeight: 800 }}
+                style={{ border: `1px solid ${C.rim}`, borderRadius: 10, background: C.deep, color: C.bone, padding: '13px 16px', fontWeight: 800 }}
               >
                 Try returning patient demo
               </button>

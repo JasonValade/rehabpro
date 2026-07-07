@@ -191,6 +191,7 @@ describe('App Supabase patient MVP flow', () => {
 
     expect((await screen.findAllByText('Create account')).length).toBeGreaterThan(0)
     expect(screen.getByText(/Create an account, complete injury intake/i)).toBeInTheDocument()
+    expect(screen.getByText(/MVP demo flow/i)).toBeInTheDocument()
 
     await user.type(screen.getByLabelText(/full name/i), 'Demo Athlete')
     await user.type(screen.getByLabelText(/email/i), 'patient@example.com')
