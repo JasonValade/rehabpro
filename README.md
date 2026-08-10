@@ -4,6 +4,29 @@ RehabPro is a React + Vite rehabilitation dashboard prototype for patient rehab 
 
 > **Demo-only notice:** This repository is a prototype using mock patient data and demo-only authentication. It is not HIPAA-ready, is not intended for protected health information, and should not be used for real medical care or clinical decision-making.
 
+## What this demonstrates
+
+This project was built as a full-stack portfolio piece showcasing:
+
+- **Full-stack architecture** — React 19 frontend (Vite + TypeScript) paired with a lightweight Express API backend
+- **Role-based UX design** — distinct patient (mobile-first) and physical therapist (desktop-first) interfaces sharing one codebase
+- **Incremental TypeScript migration** — structured to support gradual JS→TS adoption without a big-bang rewrite
+- **Security-conscious design** — CORS configuration, API key handling, rate limiting, input validation, and honest HIPAA scope documentation
+- **Testing discipline** — Vitest + React Testing Library covering component behavior and app smoke tests (20 tests, 7 test files)
+- **Developer tooling** — ESLint flat config, Prettier, TypeScript strict mode, and automated `deploy:check` script
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | React 19, TypeScript, Vite |
+| Styling | CSS modules |
+| Backend | Node.js, Express 5 |
+| Testing | Vitest, React Testing Library |
+| Linting | ESLint 9 (flat config), TypeScript-ESLint |
+| Formatting | Prettier |
+| AI integration | OpenAI API (optional) |
+
 ## Product vision
 
 RehabPro should feel like a two-sided rehab platform with different interfaces for different daily contexts:

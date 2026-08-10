@@ -1,4 +1,4 @@
-# RehabPro Product Vision Notes
+# RehabPro Architecture & Design Decisions
 
 ## Current Direction
 
