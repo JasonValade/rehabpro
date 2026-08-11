@@ -159,6 +159,7 @@ function mockSignedIn({
 
 describe('App Supabase patient MVP flow', () => {
   beforeEach(() => {
+    window.history.replaceState({}, '', '/')
     vi.clearAllMocks()
     authMocks.onAuthStateChange.mockReturnValue({
       data: { subscription: { unsubscribe: authMocks.unsubscribe } },
@@ -246,6 +247,16 @@ describe('App Supabase patient MVP flow', () => {
     expect(screen.getAllByText('80%').length).toBeGreaterThan(0)
   })
 
+  it('opens the returning patient demo from a portfolio review URL', async () => {
+    mockSignedOut()
+    window.history.replaceState({}, '', '/?demo=returning')
+
+    render(<App />)
+
+    expect(await screen.findByText(/KEEP MOVING, DEMO/i)).toBeInTheDocument()
+    expect(screen.getByText(/Week 14 · ACL \+ Meniscus/i)).toBeInTheDocument()
+  })
+
   it('routes signed-in users without a patient record to injury intake', async () => {
     authMocks.getSession.mockResolvedValue({ data: { session: fakeSession } })
     vi.mocked(getCurrentPatient).mockResolvedValue(null)
@@ -331,8 +342,8 @@ describe('App Supabase patient MVP flow', () => {
 
     await user.click(await screen.findByRole('button', { name: /train/i }))
 
-    expect(screen.getByText('Heel Slides')).toBeInTheDocument()
-    expect(screen.getByText('Quad Sets')).toBeInTheDocument()
+    expect(await screen.findByText('Heel Slides')).toBeInTheDocument()
+    expect(await screen.findByText('Quad Sets')).toBeInTheDocument()
     expect(screen.getByText('0/2 complete')).toBeInTheDocument()
   })
 

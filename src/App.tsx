@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { C } from './constants/colors'
 import {
@@ -9,9 +9,6 @@ import {
   RETURNING_PATIENT_COMPLETION_HISTORY,
   RETURNING_PATIENT_PROGRESS,
 } from './data/rehabMock'
-import { HomeView } from './components/patient/HomeView.jsx'
-import { TrainView } from './components/patient/TrainView.jsx'
-import { ProgressView } from './components/patient/ProgressView.jsx'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
 import {
   createPatientFromIntake,
@@ -29,6 +26,10 @@ import {
   type RehabItem,
   type RehabPlanRecord,
 } from './services/rehabData'
+
+const HomeView = lazy(() => import('./components/patient/HomeView.jsx').then((module) => ({ default: module.HomeView })))
+const TrainView = lazy(() => import('./components/patient/TrainView.jsx').then((module) => ({ default: module.TrainView })))
+const ProgressView = lazy(() => import('./components/patient/ProgressView.jsx').then((module) => ({ default: module.ProgressView })))
 
 const SAFETY_COPY = 'This plan is for educational support and does not replace your physical therapist or doctor’s instructions.'
 const REQUIRE_EMAIL_CONFIRMATION = false
@@ -1091,7 +1092,7 @@ export default function RehabPro() {
     setTab('home')
   }
 
-  const handleUseReturningDemo = () => {
+  const handleUseReturningDemo = useCallback(() => {
     const profile = PATIENT_DEMO_PROFILES.pt_demo
     const demoPatient = {
       id: profile.id,
@@ -1128,7 +1129,14 @@ export default function RehabPro() {
     setError('')
     setMessage('')
     setTab('home')
-  }
+  }, [])
+
+  useEffect(() => {
+    const requestedDemo = new URLSearchParams(window.location.search).get('demo')
+    if (!authLoading && !session && !demoProfile && requestedDemo === 'returning') {
+      handleUseReturningDemo()
+    }
+  }, [authLoading, demoProfile, handleUseReturningDemo, session])
 
   const handleSubmitIntake = async (input: IntakeInput) => {
     if (!session) return
@@ -1264,9 +1272,11 @@ export default function RehabPro() {
         </div>
 
         <div ref={contentScrollRef} style={{ flex: 1, padding: '16px 20px', paddingBottom: 'calc(112px + env(safe-area-inset-bottom, 0))', overflowY: 'auto' }}>
-          {tab === 'home' && <HomeView patientProfile={patientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} onNavigate={setTab} />}
-          {tab === 'train' && <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />}
-          {tab === 'progress' && <ProgressView patientProfile={patientProfile} milestones={MILESTONES} progressData={progressBaseline} completionHistory={completionHistory} checkIns={progressLogs} />}
+          <Suspense fallback={<div style={{ color: C.muted, fontSize: 12 }}>Loading view...</div>}>
+            {tab === 'home' && <HomeView patientProfile={patientProfile} rehabItems={rehabItems} milestones={MILESTONES} ptMessage={PT_MSG} schedule={SCHEDULE} onNavigate={setTab} />}
+            {tab === 'train' && <TrainView rehabItems={rehabItems} setRehabItems={setRehabItems} onSubmitCheckIn={handleSubmitSessionCheckIn} />}
+            {tab === 'progress' && <ProgressView patientProfile={patientProfile} milestones={MILESTONES} progressData={progressBaseline} completionHistory={completionHistory} checkIns={progressLogs} />}
+          </Suspense>
           {actionLoading && tab !== 'train' ? <div style={{ color: C.muted, fontSize: 12, marginTop: 12 }}>Syncing...</div> : null}
         </div>
 

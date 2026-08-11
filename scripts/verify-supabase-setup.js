@@ -81,7 +81,7 @@ async function verifyConnectivity() {
   await log('CONNECT', 'Testing Supabase connectivity...')
   try {
     const client = createClient(VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY)
-    const { data, error } = await client.from('exercises').select('count').limit(1)
+    const { error } = await client.from('exercises').select('count').limit(1)
     if (error && error.code !== 'PGRST116') {
       throw error
     }
@@ -96,7 +96,7 @@ async function verifyConnectivity() {
 async function verifyTables(client) {
   await log('SCHEMA', 'Checking required tables...')
   try {
-    const { data: tables, error } = await client.rpc('get_tables', {})
+    const { error } = await client.rpc('get_tables', {})
     if (error && error.code !== 'PGRST116') {
       // If RPC doesn't exist, try querying information schema
       const { data: schemaData, error: schemaError } = await client
@@ -151,7 +151,6 @@ async function verifyExercises(client) {
       await log('SEEDS', `Missing exercises: ${missing.join(', ')}`, 'warning')
     }
 
-    const totalCount = await client.from('exercises').select('count').limit(1)
     await log('SEEDS', `Found ${exercises?.length || 0}/${REQUIRED_EXERCISES.length} key exercises`, foundNames.length === REQUIRED_EXERCISES.length ? 'success' : 'warning')
     return foundNames.length === REQUIRED_EXERCISES.length
   } catch (err) {
@@ -164,7 +163,7 @@ async function verifyRLS(client) {
   await log('RLS', 'Checking Row-Level Security...')
   try {
     // Try to read exercises without auth (should work - public read)
-    const { data: exercises, error } = await client
+    const { error } = await client
       .from('exercises')
       .select('id,name')
       .limit(1)

@@ -1,8 +1,23 @@
-# RehabPro
+# RehabPro — full-stack SWE portfolio project
 
-RehabPro is a React + Vite rehabilitation app for the patient MVP loop: create account, complete injury intake, create a starter rehab plan, complete today’s exercises, log symptoms, and see progress update over time. The primary app now uses Supabase Auth and Supabase Postgres for patient data.
+RehabPro is a full-stack rehabilitation workflow built to demonstrate software engineering across frontend architecture, authentication, relational data modeling, authorization, testing, performance, and deployment. The primary path uses React, TypeScript, Supabase Auth, and Postgres; a deterministic local demo lets reviewers exercise the system without credentials.
+
+**Developer:** Jason Valade · **Role:** Full-stack SWE · **Project:** Solo, June 2026–present (ongoing)
 
 > **Demo-only notice:** This repository is a prototype using mock patient data and demo-only authentication. It is not HIPAA-ready, is not intended for protected health information, and should not be used for real medical care or clinical decision-making.
+
+## Engineering highlights
+
+- **End-to-end stateful workflow:** authentication → intake → persisted plan → workout transaction → symptom logs → derived progress.
+- **Relational backend:** eight Postgres tables, foreign keys, check constraints, timestamp triggers, seed migrations, and ownership-based row-level security.
+- **Typed data boundary:** TypeScript domain types and a dedicated Supabase service layer isolate persistence from UI components.
+- **Deterministic domain logic:** injury, phase, and recovery week map to reproducible plan templates with testable outcomes.
+- **Resilient demo architecture:** the same UI supports a persistent authenticated path and a zero-setup in-memory reviewer path.
+- **Behavioral verification:** 26 tests cover authentication, onboarding, plan rendering, workout persistence, progress, reports, and messaging.
+- **Production discipline:** one release command runs tests, typechecking, linting, and an optimized build; route-level lazy loading keeps the main chunk below the configured warning threshold.
+- **Security boundaries:** database RLS, guarded optional APIs, restricted CORS, rate limits, request validation, and deployment security headers.
+
+See [ENGINEERING.md](./ENGINEERING.md) for the architecture, data flow, design decisions, and code-review map.
 
 ## Product vision
 
@@ -17,6 +32,14 @@ The current MVP is patient-first and mobile-first:
 7. Progress updates
 
 Starter plans are rule-based templates. RehabPro does not generate clinical plans with AI in this version.
+
+## Portfolio review
+
+- **Live demo:** open the deployed site normally to review onboarding, or append `?demo=returning` to launch directly into a populated patient account with no credentials.
+- **Recommended code path:** start with [`src/App.tsx`](./src/App.tsx), [`src/services/rehabData.ts`](./src/services/rehabData.ts), the [database migration](./supabase/migrations/202606290001_patient_mvp.sql), and [`src/App.test.tsx`](./src/App.test.tsx).
+- **Recommended walkthrough:** direct demo → Train → complete exercises → symptom check-in → Progress → inspect the matching persistence tests.
+- **Case study:** see [`CASE_STUDY.md`](./CASE_STUDY.md) for the engineering problem, implementation decisions, tradeoffs, and evidence.
+- **Release validation:** use [`LAUNCH_CHECKLIST.md`](./LAUNCH_CHECKLIST.md) before sharing a new deployment.
 
 ## What this repo includes
 
@@ -132,12 +155,12 @@ The AI coach is optional. When `OPENAI_API_KEY` is empty, the patient chat defau
 
 ## Architecture notes
 
-- The UI is a single-page React app powered by Vite and React 19.
-- The project now supports TypeScript through `tsconfig.json` and TS-aware linting.
-- ESLint is configured for React, TypeScript, hooks, and Vite refresh compatibility.
-- Vitest with React Testing Library covers component behavior and app smoke tests.
-- Supabase is the primary persistence layer for the patient MVP.
-- The backend server is optional and remains as a lightweight mock/API layer for local development.
+- React owns workflow orchestration and view state; patient views are lazy-loaded boundaries.
+- The service layer owns Supabase queries, record mapping, and domain-facing types.
+- Postgres owns referential integrity, value constraints, cascades, timestamps, and per-user authorization through RLS.
+- Vitest and React Testing Library verify user-visible behavior rather than implementation details.
+- Vercel runs the full release gate before producing the static frontend deployment.
+- The optional Express backend is isolated from the primary path and disabled by default.
 
 ## Notes
 
