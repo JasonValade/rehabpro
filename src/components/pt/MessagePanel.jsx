@@ -29,7 +29,7 @@ export function MessagePanel({ thread, reports, onSendMessage, onMarkReportRevie
       <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start", marginBottom: 16 }}>
         <div>
           <Label color={C.lime}>Messages</Label>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, lineHeight: 1, marginTop: 6 }}>{thread?.patientName || "No thread selected"}</div>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 26, color: C.bone, lineHeight: 1, marginTop: 6 }}>{thread?.patientName || "No thread selected"}</div>
         </div>
         {thread?.hasReport ? <Tag label="Needs review" color={C.red} /> : thread ? <Tag label="Conversation" color={C.blue} /> : null}
       </div>
@@ -68,7 +68,7 @@ export function MessagePanel({ thread, reports, onSendMessage, onMarkReportRevie
           placeholder="Write a message..."
           style={{ flex: 1, minWidth: 0, borderRadius: 7, border: `1px solid ${C.rim}`, background: C.deep, color: C.bone, padding: "12px 13px", fontFamily: "'DM Sans', sans-serif", fontSize: 13 }}
         />
-        <button type="button" onClick={handleSend} style={{ padding: "0 16px", border: "none", borderRadius: 7, background: C.lime, color: C.black, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <button type="button" onClick={handleSend} style={{ padding: "0 16px", border: "none", borderRadius: 7, background: C.lime, color: C.black, fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Send
         </button>
       </div>

@@ -37,20 +37,20 @@ export function ExerciseDetail({ exercise }) {
     <div style={{ display: "grid", gap: 14 }}>
       <div style={{ display: "grid", gap: 14 }}>
         <div style={{ display: "grid", gap: 10 }}>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 30, color: C.bone, lineHeight: 0.95, letterSpacing: "0.02em" }}>{exercise.name}</div>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 30, color: C.bone, lineHeight: 0.95, letterSpacing: "0.02em" }}>{exercise.name}</div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ borderRadius: 999, border: `1px solid ${C.rim}`, background: C.deep, padding: "6px 9px", fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div style={{ borderRadius: 999, border: `1px solid ${C.rim}`, background: C.deep, padding: "6px 9px", fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
               {detailMeta}
             </div>
             {exercise.equipment ? (
-              <div style={{ borderRadius: 999, border: `1px solid ${C.rim}`, background: C.deep, padding: "6px 9px", fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.blue, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ borderRadius: 999, border: `1px solid ${C.rim}`, background: C.deep, padding: "6px 9px", fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.blue, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 {exercise.equipment}
               </div>
             ) : null}
           </div>
           {exercise.muscles ? (
             <div style={{ borderRadius: 12, border: `1px solid ${C.rim}`, background: C.deep, padding: "10px 12px", display: "grid", gap: 3 }}>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Targets</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>Targets</div>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.4 }}>{exercise.muscles}</div>
             </div>
           ) : null}
@@ -62,8 +62,8 @@ export function ExerciseDetail({ exercise }) {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
           {stats.map((stat) => (
             <div key={stat.label} style={{ background: C.deep, border: `1px solid ${C.rim}`, borderTop: `2px solid ${stat.color}`, borderRadius: "0 0 10px 10px", padding: "11px 12px", minWidth: 0 }}>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{stat.label}</div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 26, color: C.bone, lineHeight: 1, letterSpacing: "0.02em", overflowWrap: "anywhere" }}>{stat.value}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>{stat.label}</div>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 26, color: C.bone, lineHeight: 1, letterSpacing: "0.02em", overflowWrap: "anywhere" }}>{stat.value}</div>
             </div>
           ))}
         </div>
@@ -92,7 +92,7 @@ export function ExerciseDetail({ exercise }) {
                 <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", background: "linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.55))" }}>
                   <span style={{ width: 62, height: 62, borderRadius: "50%", display: "grid", placeItems: "center", paddingLeft: 4, background: C.lime, color: C.black, fontSize: 25, boxShadow: "0 8px 30px rgba(0,0,0,0.45)" }}>▶</span>
                 </span>
-                <span style={{ position: "absolute", left: 12, bottom: 10, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tap to play technique demo</span>
+                <span style={{ position: "absolute", left: 12, bottom: 10, color: C.bone, fontFamily: "'DM Sans', sans-serif", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.08em" }}>Tap to play technique demo</span>
               </button>
             )}
           </div>
@@ -151,7 +151,7 @@ export function ExerciseDetail({ exercise }) {
                   padding: "9px 12px",
                   background: C.limeDim,
                   color: C.lime,
-                  fontFamily: "'Fira Code', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: 10,
                   textTransform: "uppercase",
                   letterSpacing: "0.08em",
@@ -161,7 +161,7 @@ export function ExerciseDetail({ exercise }) {
                 Find technique demo on YouTube ↗
               </a>
             ) : (
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em" }}>
                 Demo guidance unavailable
               </div>
             )}
@@ -188,13 +188,13 @@ export function ExerciseDetail({ exercise }) {
 
       <div style={{ display: "grid", gap: 10 }}>
         <div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
             Technique
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.7 }}>{instructions}</div>
         </div>
         <div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
             Progression rules
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.7 }}>{progression}</div>
@@ -220,11 +220,11 @@ export function ExerciseDetail({ exercise }) {
           }}
         >
           <span>Show more clinical notes</span>
-          <span style={{ fontFamily: "'Fira Code', monospace", color: showNotes ? C.lime : C.muted }}>{showNotes ? "Hide" : "Open"}</span>
+          <span style={{ fontFamily: "'DM Sans', sans-serif", color: showNotes ? C.lime : C.muted }}>{showNotes ? "Hide" : "Open"}</span>
         </button>
         {showNotes ? (
           <div style={{ marginTop: 10, borderRadius: 12, border: `1px solid ${C.rim}`, background: C.deep, padding: 12 }}>
-            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
               PT notes
             </div>
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, lineHeight: 1.7 }}>{clinicalNotes}</div>

@@ -5,7 +5,7 @@ export function Tag({ label, color = C.lime }) {
   return (
     <span
       style={{
-        fontFamily: "'Fira Code', monospace",
+        fontFamily: "'DM Sans', sans-serif",
         fontSize: 9,
         fontWeight: 600,
         letterSpacing: "0.1em",

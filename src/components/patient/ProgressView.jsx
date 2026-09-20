@@ -15,7 +15,7 @@ function Panel({ children, style }) {
 
 function SectionLabel({ children, color = C.lime }) {
   return (
-    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
       {children}
     </div>
   );
@@ -84,7 +84,7 @@ function SnapshotCard({ label, value, unit, detail, color }) {
   return (
     <Panel style={{ padding: 14, minHeight: 106 }}>
       <SectionLabel color={color}>{label}</SectionLabel>
-      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 34, color: C.bone, lineHeight: 1, letterSpacing: "0.02em" }}>
+      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 34, color: C.bone, lineHeight: 1, letterSpacing: "0.02em" }}>
         {value}
         <span style={{ fontSize: 15, color: C.muted }}> {unit}</span>
       </div>
@@ -108,7 +108,7 @@ function TabButton({ tab, activeTab, onClick }) {
         color: isActive ? C.black : C.bone,
         borderRadius: 7,
         padding: "10px 8px",
-        fontFamily: "'Fira Code', monospace",
+        fontFamily: "'DM Sans', sans-serif",
         fontSize: 9,
         textTransform: "uppercase",
         letterSpacing: "0.06em",
@@ -131,7 +131,7 @@ function TrendPanel({ title, value, unit, series, color, interpretation, points 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 12 }}>
         <div>
           <SectionLabel color={color}>{title}</SectionLabel>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 32, color: C.bone, lineHeight: 1 }}>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 32, color: C.bone, lineHeight: 1 }}>
             {value}
             <span style={{ fontSize: 15, color: C.muted }}> {unit}</span>
           </div>
@@ -141,7 +141,7 @@ function TrendPanel({ title, value, unit, series, color, interpretation, points 
       <SparkLine data={series} color={color} height={58} labels={points.map((point) => point.label)} selectedIndex={effectiveSelectedIndex} onPointSelect={setSelectedIndex} maxValue={maxValue} />
       {selectedPoint && (
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", border: `1px solid ${C.rim}`, borderRadius: 7, padding: "10px 12px", background: C.deep, marginTop: 12 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {selectedPoint.label}
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.bone, lineHeight: 1.45 }}>
@@ -161,7 +161,7 @@ function SymptomGraph({ label, value, series, color, points, selectedIndex, onPo
     <div style={{ border: `1px solid ${C.rim}`, borderRadius: 7, padding: 12, background: C.deep }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 8 }}>
         <SectionLabel color={color}>{label}</SectionLabel>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color: C.bone, lineHeight: 1 }}>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 24, color: C.bone, lineHeight: 1 }}>
           {value}
           <span style={{ fontSize: 12, color: C.muted }}> /10</span>
         </div>
@@ -181,12 +181,12 @@ function SymptomsPanel({ latest, painSeries, swellingSeries, difficultySeries, p
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 12 }}>
         <div>
           <SectionLabel color={C.red}>Symptoms</SectionLabel>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 32, color: C.bone, lineHeight: 1 }}>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 32, color: C.bone, lineHeight: 1 }}>
             {latest.pain}
             <span style={{ fontSize: 15, color: C.muted }}> /10 pain</span>
           </div>
         </div>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.blue, textTransform: "uppercase" }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.blue, textTransform: "uppercase" }}>
           swelling {latest.swelling}/10
         </div>
       </div>
@@ -199,7 +199,7 @@ function SymptomsPanel({ latest, painSeries, swellingSeries, difficultySeries, p
 
       {selectedPoint && (
         <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 10, alignItems: "center", border: `1px solid ${C.rim}`, borderRadius: 7, padding: "10px 12px", background: C.deep, marginTop: 12 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.lime, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {selectedPoint.label}
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.bone, lineHeight: 1.45 }}>
@@ -260,11 +260,11 @@ function MilestoneTimeline({ milestones, latest, latestRom, latestCompletion }) 
                 <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: C.bone, fontWeight: 700, lineHeight: 1.3 }}>
                   {milestone.label}
                 </div>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color, textTransform: "uppercase", letterSpacing: "0.08em", marginTop: 4 }}>
                   {state}
                 </div>
               </div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted }}>Wk {milestone.week}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted }}>Wk {milestone.week}</div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 6, marginTop: 12 }}>
               {requirements.map((requirement) => (
@@ -371,7 +371,7 @@ export function ProgressView({ patientProfile, milestones = [], progressData, co
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
                   <div>
                     <SectionLabel color={C.lime}>Milestones</SectionLabel>
-                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 32, color: C.bone, lineHeight: 1 }}>
+                    <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 32, color: C.bone, lineHeight: 1 }}>
                       {achieved}/{milestones.length}
                       <span style={{ fontSize: 15, color: C.muted }}> cleared</span>
                     </div>
@@ -393,7 +393,7 @@ export function ProgressView({ patientProfile, milestones = [], progressData, co
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
           <div>
             <SectionLabel color={status.color}>{injuryTitle}</SectionLabel>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 36, color: C.bone, lineHeight: 1, letterSpacing: "0.02em" }}>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 36, color: C.bone, lineHeight: 1, letterSpacing: "0.02em" }}>
               {status.label}
             </div>
             <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, marginTop: 5 }}>
@@ -409,8 +409,8 @@ export function ProgressView({ patientProfile, milestones = [], progressData, co
             ["Completion", `${weeklyCompletion}%`],
           ].map(([label, value]) => (
             <div key={label} style={{ border: `1px solid ${C.rim}`, borderRadius: 7, padding: "9px 8px", background: C.deep }}>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, marginTop: 3 }}>{value}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>{label}</div>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 22, color: C.bone, marginTop: 3 }}>{value}</div>
             </div>
           ))}
         </div>
@@ -418,7 +418,7 @@ export function ProgressView({ patientProfile, milestones = [], progressData, co
           {status.summary}
         </div>
         <div style={{ borderTop: `1px solid ${C.rim}`, marginTop: 14, paddingTop: 12 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: status.color, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: status.color, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
             Recommended next step
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone }}>{status.nextStep}</div>

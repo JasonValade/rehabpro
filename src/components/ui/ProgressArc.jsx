@@ -75,7 +75,7 @@ export function ProgressArc({ pct, size = 100, stroke = 8, color = C.lime, label
       >
         <div
           style={{
-            fontFamily: "'Bebas Neue', cursive",
+            fontFamily: "'Manrope', sans-serif",
             fontSize: size * 0.25,
             color,
             lineHeight: 1,
@@ -88,7 +88,7 @@ export function ProgressArc({ pct, size = 100, stroke = 8, color = C.lime, label
         {label && (
           <div
             style={{
-              fontFamily: "'Fira Code', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: 8,
               color: C.muted,
               textTransform: "uppercase",

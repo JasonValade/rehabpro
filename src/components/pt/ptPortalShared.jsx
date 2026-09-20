@@ -13,7 +13,7 @@ export function Panel({ children, style }) {
 
 export function Label({ children, color = C.muted }) {
   return (
-    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color, letterSpacing: "0.1em", textTransform: "uppercase" }}>
+    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color, letterSpacing: "0.1em", textTransform: "uppercase" }}>
       {children}
     </div>
   );
@@ -23,7 +23,7 @@ export function Metric({ label, value, color = C.bone, tone = "default" }) {
   return (
     <div className={`pt-metric pt-metric-${tone}`}>
       <Label>{label}</Label>
-      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 34, color, lineHeight: 1, marginTop: 8 }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 34, color, lineHeight: 1, marginTop: 8 }}>{value}</div>
     </div>
   );
 }
@@ -45,7 +45,7 @@ export function SeverityMeter({ label, value, max = 5, color = C.lime }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 7 }}>
         <Label>{label}</Label>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.bone }}>{value ?? "-"}/{max}</div>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.bone }}>{value ?? "-"}/{max}</div>
       </div>
       <div style={{ height: 6, borderRadius: 999, background: C.rim, overflow: "hidden" }}>
         <div style={{ width: `${percent}%`, height: "100%", background: color, borderRadius: 999 }} />
@@ -57,7 +57,7 @@ export function SeverityMeter({ label, value, max = 5, color = C.lime }) {
 export function EmptyState({ title, message }) {
   return (
     <div style={{ border: `1px dashed ${C.rimHi}`, background: C.deep, borderRadius: 8, padding: 16, color: C.muted }}>
-      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, color: C.bone, lineHeight: 1 }}>{title}</div>
+      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 20, color: C.bone, lineHeight: 1 }}>{title}</div>
       <div style={{ fontSize: 13, lineHeight: 1.45, marginTop: 7 }}>{message}</div>
     </div>
   );
@@ -96,8 +96,8 @@ export function PatientRow({ patient, active, report, checkIn, onClick }) {
             {patient.avatar}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: C.bone, lineHeight: 1 }}>{patient.name}</div>
-            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 5 }}>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 18, color: C.bone, lineHeight: 1 }}>{patient.name}</div>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 5 }}>
               {patient.injury} / Week {patient.week}
             </div>
             <div className="pt-patient-meta">
@@ -188,7 +188,7 @@ export function TrendBadge({ label, value, color }) {
   return (
     <div className="pt-trend-badge">
       <Label>{label}</Label>
-      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color, lineHeight: 1, marginTop: 6 }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color, lineHeight: 1, marginTop: 6 }}>{value}</div>
     </div>
   );
 }
@@ -198,7 +198,7 @@ export function SectionHeader({ eyebrow, title, detail, tag }) {
     <header className="pt-header">
       <div>
         <Label color={C.lime}>{eyebrow}</Label>
-        <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 48, color: C.bone, lineHeight: 1, marginTop: 6 }}>{title}</h1>
+        <h1 style={{ fontFamily: "'Manrope', sans-serif", fontSize: 48, color: C.bone, lineHeight: 1, marginTop: 6 }}>{title}</h1>
         <div style={{ fontSize: 14, color: C.muted, marginTop: 7 }}>
           {detail}
         </div>
@@ -226,8 +226,8 @@ export function WorkQueueCard({ title, meta, description, tag, onClick, children
     >
       <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "start" }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1 }}>{title}</div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>{meta}</div>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 22, color: C.bone, lineHeight: 1 }}>{title}</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>{meta}</div>
         </div>
         {tag}
       </div>

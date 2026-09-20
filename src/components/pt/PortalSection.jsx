@@ -235,8 +235,8 @@ function DashboardActionCard({ patient, action, onOpenPatient, onMarkPriorityAct
     <article className="pt-dashboard-action-card">
       <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "start" }}>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone, lineHeight: 1 }}>{patient.name}</div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 22, color: C.bone, lineHeight: 1 }}>{patient.name}</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
             {action.title} / {action.ts ? relativeTime(action.ts) : "No recent check-in"}
           </div>
         </div>

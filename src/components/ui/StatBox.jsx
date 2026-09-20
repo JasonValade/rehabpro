@@ -14,7 +14,7 @@ export function StatBox({ label, value, unit, color = C.lime, sub }) {
     >
       <div
         style={{
-          fontFamily: "'Fira Code', monospace",
+          fontFamily: "'DM Sans', sans-serif",
           fontSize: 10,
           color: C.muted,
           letterSpacing: "0.1em",
@@ -26,7 +26,7 @@ export function StatBox({ label, value, unit, color = C.lime, sub }) {
       </div>
       <div
         style={{
-          fontFamily: "'Bebas Neue', cursive",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: 36,
           color,
           lineHeight: 1,

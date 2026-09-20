@@ -132,7 +132,7 @@ export function PTChat({ patientId, patientContext, ptThread, onSendPtMessage })
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, gap: 10 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 12px", background: C.panel, border: `1px solid ${C.rim}`, borderRadius: 12 }}>
-        <label htmlFor="chat-mode" style={{ flexShrink: 0, color: C.muted, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <label htmlFor="chat-mode" style={{ flexShrink: 0, color: C.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Chat with
         </label>
         <div style={{ position: "relative", flex: 1 }}>

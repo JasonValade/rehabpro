@@ -326,8 +326,8 @@ export function PatientWorkspace({
             </div>
             <div style={{ minWidth: 0 }}>
               <Label color={patient.color}>Patient workspace</Label>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 40, color: C.bone, lineHeight: 1, marginTop: 7 }}>{patient.name}</div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 8 }}>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 40, color: C.bone, lineHeight: 1, marginTop: 7 }}>{patient.name}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 8 }}>
                 {patient.injury} / Week {patient.week} / {patient.stage}
               </div>
             </div>
@@ -368,9 +368,9 @@ export function PatientWorkspace({
                 <div className="pt-progress-check-hero">
                   <ProgressArc pct={readinessScore} size={96} stroke={7} color={readinessColor} label="ready" />
                   <div>
-                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 34, color: readinessColor, lineHeight: 1 }}>{readinessLabel}</div>
+                    <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 34, color: readinessColor, lineHeight: 1 }}>{readinessLabel}</div>
                     <div style={{ fontSize: 14, color: C.bone, lineHeight: 1.55, marginTop: 8 }}>{progressReason}</div>
-                    <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 10, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                       Confidence {confidenceLabel} / Week {patient.week} / {patient.stage}
                     </div>
                   </div>
@@ -380,7 +380,7 @@ export function PatientWorkspace({
               <DetailBlock label="Trends" accent={trendAccent}>
                 <div style={{ display: "grid", gap: 12 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
-                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, lineHeight: 1 }}>
+                    <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color: C.bone, lineHeight: 1 }}>
                       {trendHeadline}
                     </div>
                     <Tag label={trendTag} color={trendAccent} />
@@ -411,8 +411,8 @@ export function PatientWorkspace({
                 <div style={{ display: "grid", gap: 9 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "start" }}>
                     <div>
-                      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, lineHeight: 1 }}>{nextMilestone.label}</div>
-                      <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color: C.bone, lineHeight: 1 }}>{nextMilestone.label}</div>
+                      <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 6, letterSpacing: "0.06em", textTransform: "uppercase" }}>
                         Target week {nextMilestone.week}
                       </div>
                     </div>

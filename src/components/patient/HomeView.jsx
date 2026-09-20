@@ -7,7 +7,7 @@ import { C } from "../../constants/colors";
  */
 
 const monoLabel = {
-  fontFamily: "'Fira Code', monospace",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: 9,
   color: C.muted,
   letterSpacing: "0.1em",
@@ -18,7 +18,7 @@ function Metric({ label, value, detail, color = C.lime, valueSize = 28 }) {
   return (
     <div style={{ minWidth: 0, padding: 14, borderRadius: 14, background: C.panel, border: `1px solid ${C.rim}` }}>
       <div style={monoLabel}>{label}</div>
-      <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: valueSize, color, lineHeight: 1, marginTop: 8 }}>{value}</div>
+      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: valueSize, color, lineHeight: 1, marginTop: 8 }}>{value}</div>
       <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted, lineHeight: 1.4, marginTop: 5 }}>{detail}</div>
     </div>
   );
@@ -73,7 +73,7 @@ export function HomeView({ patientProfile, rehabItems, milestones, ptMessage, sc
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 38, lineHeight: 0.95, letterSpacing: "0.02em" }}>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 38, lineHeight: 0.95, letterSpacing: "0.02em" }}>
                 {heroTitle}
               </div>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, lineHeight: 1.5, marginTop: 9, maxWidth: 235 }}>
@@ -81,7 +81,7 @@ export function HomeView({ patientProfile, rehabItems, milestones, ptMessage, sc
               </div>
             </div>
             <div style={{ flexShrink: 0, textAlign: "right" }}>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 44, lineHeight: 0.9 }}>{dayPct}%</div>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 44, lineHeight: 0.9 }}>{dayPct}%</div>
               <div style={{ ...monoLabel, color: "rgba(8,9,9,0.58)", marginTop: 5 }}>Today</div>
             </div>
           </div>
@@ -122,12 +122,12 @@ export function HomeView({ patientProfile, rehabItems, milestones, ptMessage, sc
             <Tag label={nextExercise.tag ?? "Exercise"} color={C.amber} />
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "42px 1fr auto", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 42, height: 42, borderRadius: 13, display: "grid", placeItems: "center", background: C.amberDim, border: `1px solid ${C.amber}40`, color: C.amber, fontFamily: "'Bebas Neue', cursive", fontSize: 18 }}>
+            <div style={{ width: 42, height: 42, borderRadius: 13, display: "grid", placeItems: "center", background: C.amberDim, border: `1px solid ${C.amber}40`, color: C.amber, fontFamily: "'Manrope', sans-serif", fontSize: 18 }}>
               {rehabDone + 1}
             </div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, color: C.bone, fontWeight: 600 }}>{nextExercise.name}</div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, marginTop: 5 }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, marginTop: 5 }}>
                 {nextExercise.sets} sets × {nextExercise.reps}
               </div>
             </div>
@@ -163,7 +163,7 @@ export function HomeView({ patientProfile, rehabItems, milestones, ptMessage, sc
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
           <div>
             <div style={monoLabel}>Current plan</div>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 21, color: C.bone, marginTop: 6 }}>{patientProfile?.rehabPhase ?? "Recovery"}</div>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 21, color: C.bone, marginTop: 6 }}>{patientProfile?.rehabPhase ?? "Recovery"}</div>
           </div>
           <Tag label={patientProfile?.phaseLabel ?? patientProfile?.oversightMode ?? "Active"} color={C.lime} />
         </div>
@@ -183,10 +183,10 @@ export function HomeView({ patientProfile, rehabItems, milestones, ptMessage, sc
       <section style={{ background: C.panel, border: `1px solid ${C.rim}`, borderLeft: `3px solid ${C.lime}`, borderRadius: "0 14px 14px 0", padding: "14px 15px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 8 }}>
           <div style={{ ...monoLabel, color: C.lime }}>{provider} · {noteLabel}</div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.muted }}>{ptMessage.time}</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.muted }}>{ptMessage.time}</div>
         </div>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.bone, lineHeight: 1.6 }}>{patientProfile?.nextStep ?? ptMessage.text}</div>
-        <button type="button" onClick={() => onNavigate?.("pt")} style={{ border: "none", background: "transparent", color: C.lime, padding: "11px 0 0", fontFamily: "'Fira Code', monospace", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+        <button type="button" onClick={() => onNavigate?.("pt")} style={{ border: "none", background: "transparent", color: C.lime, padding: "11px 0 0", fontFamily: "'DM Sans', sans-serif", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Open messages →
         </button>
       </section>

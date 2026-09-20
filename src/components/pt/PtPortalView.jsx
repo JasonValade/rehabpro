@@ -100,10 +100,10 @@ export function PtPortalView({
         <div className="pt-layout">
           <aside className="pt-sidebar">
             <div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 30, color: C.bone, letterSpacing: "0.04em", lineHeight: 1 }}>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 30, color: C.bone, letterSpacing: "0.04em", lineHeight: 1 }}>
                 REHAB<span style={{ color: C.lime }}>PRO</span>
               </div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.lime, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 8 }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.lime, letterSpacing: "0.1em", textTransform: "uppercase", marginTop: 8 }}>
                 PT portal
               </div>
             </div>
@@ -123,12 +123,12 @@ export function PtPortalView({
             <div className="pt-sidebar-actions" style={{ marginTop: "auto", display: "grid", gap: 8 }}>
               <div style={{ border: `1px solid ${C.rim}`, background: C.panel, borderRadius: 8, padding: 12 }}>
                 <Label>Signed in</Label>
-                <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 20, color: C.bone, marginTop: 7 }}>{user.name}</div>
+                <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 20, color: C.bone, marginTop: 7 }}>{user.name}</div>
               </div>
-              <button type="button" onClick={onSignOut} style={{ padding: "11px 12px", borderRadius: 7, border: `1px solid ${C.rim}`, background: C.panel, color: C.bone, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <button type="button" onClick={onSignOut} style={{ padding: "11px 12px", borderRadius: 7, border: `1px solid ${C.rim}`, background: C.panel, color: C.bone, fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Sign out
               </button>
-              <button type="button" onClick={onResetDemo} style={{ padding: "11px 12px", borderRadius: 7, border: `1px solid ${C.rim}`, background: "transparent", color: C.muted, fontFamily: "'Fira Code', monospace", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
+              <button type="button" onClick={onResetDemo} style={{ padding: "11px 12px", borderRadius: 7, border: `1px solid ${C.rim}`, background: "transparent", color: C.muted, fontFamily: "'DM Sans', sans-serif", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Reset demo
               </button>
             </div>

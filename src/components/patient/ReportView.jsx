@@ -23,7 +23,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
     return (
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16, padding: "48px 20px" }}>
         <div style={{ width: 58, height: 58, borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", background: C.limeDim, border: `1px solid ${C.limeMid}`, color: C.lime, fontSize: 28, fontWeight: 700 }}>✓</div>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 44, color: C.lime, lineHeight: 1 }}>REPORT SENT</div>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 44, color: C.lime, lineHeight: 1 }}>REPORT SENT</div>
         <div style={{ maxWidth: 280, fontFamily: "'DM Sans', sans-serif", fontSize: 13, lineHeight: 1.6, color: C.muted, textAlign: "center" }}>
           Your symptom report is now in your PT conversation for review.
         </div>
@@ -46,7 +46,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 36, color: C.red, letterSpacing: "0.02em", lineHeight: 1 }}>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 36, color: C.red, letterSpacing: "0.02em", lineHeight: 1 }}>
           REPORT
           <br />SYMPTOM.
         </div>
@@ -63,7 +63,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
 
       {step === 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 4 }}>
             Which exercise?
           </div>
           {exercises.map((ex) => (
@@ -96,7 +96,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
 
       {step === 1 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Rate your symptoms
           </div>
           {[
@@ -104,7 +104,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
             ["swelling", "SWELLING", C.amber],
           ].map(([key, label, color]) => (
             <div key={key}>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color, letterSpacing: "0.06em", marginBottom: 8 }}>{label}</div>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 18, color, letterSpacing: "0.06em", marginBottom: 8 }}>{label}</div>
               <div style={{ display: "flex", gap: 6 }}>
                 {[1, 2, 3, 4, 5].map((n) => (
                   <button
@@ -118,7 +118,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
                       background: form[key] >= n ? color + "25" : C.panel,
                       border: `2px solid ${form[key] >= n ? color : C.rim}`,
                       color: form[key] >= n ? color : C.muted,
-                      fontFamily: "'Bebas Neue', cursive",
+                      fontFamily: "'Manrope', sans-serif",
                       fontSize: 22,
                       cursor: "pointer",
                       transition: "all 0.12s",
@@ -140,7 +140,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
               border: "none",
               borderRadius: 8,
               color: "#fff",
-              fontFamily: "'Bebas Neue', cursive",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 20,
               letterSpacing: "0.06em",
               cursor: "pointer",
@@ -154,7 +154,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
 
       {step === 2 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.1em" }}>
             Where does it hurt?
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
@@ -206,7 +206,7 @@ export function ReportView({ rehabItems, onSubmit, onOpenMessages }) {
               border: "none",
               borderRadius: 8,
               color: "#fff",
-              fontFamily: "'Bebas Neue', cursive",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 20,
               letterSpacing: "0.06em",
               cursor: "pointer",

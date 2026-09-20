@@ -16,7 +16,7 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
     <div style={{ display: "flex", flexDirection: "column", height: "100%", gap: 12 }}>
       {!activeThread ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 34, color: C.bone }}>Messages</div>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 34, color: C.bone }}>Messages</div>
           <div style={{ display: "grid", gap: 10 }}>
             {threads.map((thread) => (
               <button
@@ -37,15 +37,15 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
                 }}
               >
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                  <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 16, color: C.bone }}>{thread.patientName}</div>
-                  <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted }}>{thread.updated}</div>
+                  <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 16, color: C.bone }}>{thread.patientName}</div>
+                  <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted }}>{thread.updated}</div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ flex: 1, fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.muted }}>{thread.excerpt}</div>
                   {thread.hasReport && (
                     <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.red }} />
-                      <span style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.red }}>Needs review</span>
+                      <span style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.red }}>Needs review</span>
                     </div>
                   )}
                 </div>
@@ -73,8 +73,8 @@ export function MessagesView({ threads, activeThreadId, onSelectThread, onSendMe
               ← Back
             </button>
             <div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.bone }}>{activeThread.patientName}</div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted }}>{activeThread.updated}</div>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 22, color: C.bone }}>{activeThread.patientName}</div>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted }}>{activeThread.updated}</div>
             </div>
           </div>
 

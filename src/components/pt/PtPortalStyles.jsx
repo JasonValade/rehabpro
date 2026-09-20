@@ -97,7 +97,7 @@ export function PtPortalStyles() {
           width: 100%;
           border-radius: 7px;
           padding: 11px 12px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           color: ${C.muted};
           letter-spacing: 0.08em;
@@ -199,7 +199,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-dashboard-section-head > div:first-child > div:last-child {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 23px;
           color: ${C.bone};
           line-height: 1;
@@ -238,7 +238,7 @@ export function PtPortalStyles() {
           margin-bottom: 14px;
         }
         .pt-session-prep-board-head > div:first-child > div:last-child {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 26px;
           color: ${C.bone};
           line-height: 1;
@@ -262,13 +262,13 @@ export function PtPortalStyles() {
           gap: 14px;
         }
         .pt-session-prep-patient {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 24px;
           color: ${C.bone};
           line-height: 1;
         }
         .pt-session-prep-meta {
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           color: ${C.muted};
           letter-spacing: 0.06em;
@@ -293,7 +293,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-session-prep-value {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 24px;
           color: ${C.bone};
           line-height: 1;
@@ -369,7 +369,7 @@ export function PtPortalStyles() {
           border-radius: 7px;
           background: ${C.panel};
           color: ${C.bone};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -437,7 +437,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-dashboard-compact-row > div:first-child > div {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 18px;
           color: ${C.bone};
           line-height: 1;
@@ -475,7 +475,7 @@ export function PtPortalStyles() {
         }
         .pt-dashboard-gate-head > div:first-child {
           min-width: 0;
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 18px;
           color: ${C.bone};
           line-height: 1;
@@ -484,7 +484,7 @@ export function PtPortalStyles() {
           display: block;
           margin-top: 5px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.05em;
           text-transform: uppercase;
@@ -514,7 +514,7 @@ export function PtPortalStyles() {
           background: ${C.panel};
           color: ${C.bone};
           padding: 7px 7px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.07em;
           text-transform: uppercase;
@@ -551,7 +551,7 @@ export function PtPortalStyles() {
           display: grid;
           place-items: center;
           flex: 0 0 auto;
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 16px;
           line-height: 1;
           box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
@@ -561,7 +561,7 @@ export function PtPortalStyles() {
           flex-wrap: wrap;
           gap: 0;
           margin-top: 10px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           color: ${C.muted};
           letter-spacing: 0.06em;
@@ -616,7 +616,7 @@ export function PtPortalStyles() {
           align-items: start;
         }
         .pt-history-hero-head > div:first-child > div:last-child {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 32px;
           color: ${C.bone};
           line-height: 1;
@@ -642,7 +642,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-history-stat > div:nth-child(2) {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 28px;
           line-height: 1;
           margin-top: 7px;
@@ -667,7 +667,7 @@ export function PtPortalStyles() {
           margin-bottom: 12px;
         }
         .pt-history-latest > div:first-child > div:nth-child(2) {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 24px;
           color: ${C.bone};
           line-height: 1;
@@ -685,7 +685,7 @@ export function PtPortalStyles() {
         }
         .pt-history-timeline-head span {
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -747,7 +747,7 @@ export function PtPortalStyles() {
           align-items: start;
         }
         .pt-timeline-title {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 22px;
           color: ${C.bone};
           line-height: 1;
@@ -758,7 +758,7 @@ export function PtPortalStyles() {
           gap: 0;
           margin-top: 6px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.05em;
           text-transform: uppercase;
@@ -786,7 +786,7 @@ export function PtPortalStyles() {
           border-radius: 7px;
           background: ${C.panel};
           color: ${C.bone};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -876,7 +876,7 @@ export function PtPortalStyles() {
           padding: 10px 12px;
           background: transparent;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -891,7 +891,7 @@ export function PtPortalStyles() {
           background: transparent;
           color: ${C.muted};
           padding: 2px 0;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -967,7 +967,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-plan-hero-title {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 38px;
           color: ${C.bone};
           line-height: 0.95;
@@ -1014,7 +1014,7 @@ export function PtPortalStyles() {
         .pt-plan-hero-rail b {
           position: relative;
           color: ${C.bone};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1038,7 +1038,7 @@ export function PtPortalStyles() {
           box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
         }
         .pt-plan-decision > div:first-child > div {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 30px;
           color: var(--decision-color);
           line-height: 1;
@@ -1061,7 +1061,7 @@ export function PtPortalStyles() {
           border-radius: 7px;
           padding: 7px 9px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -1083,7 +1083,7 @@ export function PtPortalStyles() {
           align-items: start;
         }
         .pt-overview-plan-title {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 30px;
           color: ${C.bone};
           line-height: 1;
@@ -1122,7 +1122,7 @@ export function PtPortalStyles() {
           background: ${C.limeDim};
         }
         .pt-overview-plan-sections button > span {
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -1167,7 +1167,7 @@ export function PtPortalStyles() {
           border-radius: 7px;
           color: ${C.bone};
           padding: 10px 12px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1195,7 +1195,7 @@ export function PtPortalStyles() {
           border-bottom: 1px solid ${C.rim};
         }
         .pt-today-header > div:first-child > div {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 30px;
           color: ${C.bone};
           line-height: 1;
@@ -1245,7 +1245,7 @@ export function PtPortalStyles() {
           display: grid;
           place-items: center;
           color: ${C.lime};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           font-weight: 700;
         }
@@ -1253,7 +1253,7 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-today-exercise {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 22px;
           color: ${C.bone};
           line-height: 1;
@@ -1261,7 +1261,7 @@ export function PtPortalStyles() {
         .pt-today-dose {
           margin-top: 5px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.04em;
           text-transform: uppercase;
@@ -1312,13 +1312,13 @@ export function PtPortalStyles() {
           gap: 10px;
         }
         .pt-weekly-title {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 21px;
           color: ${C.bone};
           line-height: 1;
         }
         .pt-weekly-cadence {
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           color: ${C.muted};
           letter-spacing: 0.06em;
@@ -1337,7 +1337,7 @@ export function PtPortalStyles() {
           display: grid;
           place-items: center;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 8px;
         }
         .pt-weekly-days span.active {
@@ -1376,7 +1376,7 @@ export function PtPortalStyles() {
           align-items: center;
         }
         .pt-plan-column-header div div {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 22px;
           color: ${C.bone};
           line-height: 1;
@@ -1435,7 +1435,7 @@ export function PtPortalStyles() {
           display: grid;
           place-items: center;
           color: var(--exercise-color);
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           font-weight: 700;
         }
@@ -1452,7 +1452,7 @@ export function PtPortalStyles() {
         }
         .pt-assigned-row-meta label span {
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 8px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1463,7 +1463,7 @@ export function PtPortalStyles() {
           color: ${C.bone};
           border-radius: 6px;
           padding: 7px 26px 7px 8px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.04em;
           text-transform: uppercase;
@@ -1495,7 +1495,7 @@ export function PtPortalStyles() {
         }
         .pt-dose-editor span {
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 8px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1519,7 +1519,7 @@ export function PtPortalStyles() {
           color: ${C.blue};
           border-radius: 7px;
           padding: 9px 11px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1559,13 +1559,13 @@ export function PtPortalStyles() {
           min-width: 0;
         }
         .pt-exercise-title {
-          font-family: 'Bebas Neue', cursive;
+          font-family: 'Manrope', sans-serif;
           font-size: 20px;
           color: ${C.bone};
           line-height: 1;
         }
         .pt-exercise-dose {
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 10px;
           color: ${C.muted};
           letter-spacing: 0.04em;
@@ -1583,7 +1583,7 @@ export function PtPortalStyles() {
           border-radius: 999px;
           padding: 5px 7px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.04em;
           text-transform: uppercase;
@@ -1601,7 +1601,7 @@ export function PtPortalStyles() {
           color: ${C.muted};
           border-radius: 7px;
           padding: 8px 10px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.08em;
           text-transform: uppercase;
@@ -1635,7 +1635,7 @@ export function PtPortalStyles() {
           border-radius: 999px;
           color: ${C.muted};
           padding: 7px 9px;
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.06em;
           text-transform: uppercase;
@@ -1655,7 +1655,7 @@ export function PtPortalStyles() {
           border-radius: 999px;
           padding: 6px 8px;
           color: ${C.muted};
-          font-family: 'Fira Code', monospace;
+          font-family: 'DM Sans', sans-serif;
           font-size: 9px;
           letter-spacing: 0.04em;
           text-transform: uppercase;

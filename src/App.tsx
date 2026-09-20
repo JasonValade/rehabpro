@@ -10,6 +10,8 @@ import {
   RETURNING_PATIENT_PROGRESS,
 } from './data/rehabMock'
 import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { useIsDesktop } from './hooks/useIsDesktop'
+import { usePtDemoState } from './hooks/usePtDemoState'
 import {
   createPatientFromIntake,
   createSession,
@@ -30,6 +32,7 @@ import {
 const HomeView = lazy(() => import('./components/patient/HomeView.jsx').then((module) => ({ default: module.HomeView })))
 const TrainView = lazy(() => import('./components/patient/TrainView.jsx').then((module) => ({ default: module.TrainView })))
 const ProgressView = lazy(() => import('./components/patient/ProgressView.jsx').then((module) => ({ default: module.ProgressView })))
+const PtPortalView = lazy(() => import('./components/pt/PtPortalView.jsx').then((module) => ({ default: module.PtPortalView })))
 
 const SAFETY_COPY = 'This plan is for educational support and does not replace your physical therapist or doctor’s instructions.'
 const REQUIRE_EMAIL_CONFIRMATION = false
@@ -186,7 +189,7 @@ function AppStyles() {
         gap: 8px;
       }
       .intake-kicker {
-        font-family: "Fira Code", monospace;
+        font-family: "DM Sans", sans-serif;
         font-size: 10px;
         color: ${C.lime};
         letter-spacing: 0.14em;
@@ -245,7 +248,7 @@ function AppStyles() {
         height: 24px;
         border: 1px solid currentColor;
         border-radius: 999px;
-        font-family: "Fira Code", monospace;
+        font-family: "DM Sans", sans-serif;
         font-size: 10px;
         font-weight: 800;
         opacity: 0.78;
@@ -255,7 +258,7 @@ function AppStyles() {
       }
       .intake-stage-eyebrow {
         display: block;
-        font-family: "Fira Code", monospace;
+        font-family: "DM Sans", sans-serif;
         font-size: 9px;
         letter-spacing: 0.08em;
         opacity: 0.62;
@@ -405,6 +408,25 @@ function AppStyles() {
         body { font-size: 14px; }
         .intake-preview-metrics { grid-template-columns: 1fr; }
       }
+      .auth-page {
+        height: 100vh;
+        overflow-y: auto;
+        padding: 24px;
+        display: grid;
+        place-items: center;
+      }
+      .auth-grid {
+        width: 100%;
+        max-width: 1140px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(340px, 420px);
+        gap: 24px;
+        align-items: center;
+      }
+      @media (max-width: 900px) {
+        .auth-page { align-items: start; padding: 20px 16px 32px; }
+        .auth-grid { grid-template-columns: 1fr; max-width: 480px; }
+      }
     `}</style>
   )
 }
@@ -459,25 +481,8 @@ function AuthScreen({
 
   return (
     <Shell>
-      <div
-        style={{
-          height: '100vh',
-          overflow: 'hidden',
-          padding: '24px',
-          display: 'grid',
-          placeItems: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '100%',
-            maxWidth: 1140,
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.05fr) minmax(340px, 420px)',
-            gap: 24,
-            alignItems: 'center',
-          }}
-        >
+      <div className="auth-page">
+        <div className="auth-grid">
           <section
             style={{
               border: `1px solid ${C.rim}`,
@@ -501,7 +506,7 @@ function AuthScreen({
                   borderRadius: 999,
                   background: 'rgba(10, 15, 20, 0.6)',
                   padding: '7px 10px',
-                  fontFamily: "'Fira Code', monospace",
+                  fontFamily: "'DM Sans', sans-serif",
                   fontSize: 11,
                   color: C.lime,
                   letterSpacing: '0.12em',
@@ -511,7 +516,7 @@ function AuthScreen({
                 <span style={{ width: 8, height: 8, borderRadius: 999, background: C.lime, display: 'inline-block' }} />
                 Patient rehab MVP
               </div>
-              <h1 style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 'clamp(56px, 8vw, 92px)', color: C.bone, lineHeight: 0.9, marginTop: 18 }}>
+              <h1 style={{ fontFamily: "'Manrope', sans-serif", fontSize: 'clamp(56px, 8vw, 92px)', color: C.bone, lineHeight: 0.9, marginTop: 18 }}>
                 REHAB<span style={{ color: C.lime }}>PRO</span>
               </h1>
               <p style={{ maxWidth: 580, color: C.bone, fontSize: 16, lineHeight: 1.55, marginTop: 16 }}>
@@ -542,13 +547,13 @@ function AuthScreen({
                   { title: '4. Review progress', detail: 'Watch trends update over time' },
                 ].map((step) => (
                   <div key={step.title} style={{ border: `1px solid ${C.rim}`, borderRadius: 12, background: C.panel, padding: 13 }}>
-                    <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 18, color: C.bone, lineHeight: 1 }}>{step.title}</div>
+                    <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 18, color: C.bone, lineHeight: 1 }}>{step.title}</div>
                     <div style={{ color: C.muted, fontSize: 12, marginTop: 4 }}>{step.detail}</div>
                   </div>
                 ))}
               </div>
               <div style={{ border: `1px solid ${C.amber}55`, borderRadius: 12, background: C.amberDim, padding: 14, color: C.bone, fontSize: 12, lineHeight: 1.5 }}>
-                <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.amber, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Clinical note</div>
+                <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.amber, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Clinical note</div>
                 {SAFETY_COPY}
               </div>
             </div>
@@ -882,11 +887,103 @@ function PreviewMetric({ label, value, hot }: { label: string; value: string; ho
 const intakeLabelStyle = {
   display: 'grid',
   gap: 6,
-  fontFamily: "'Fira Code', monospace",
+  fontFamily: "'DM Sans', sans-serif",
   fontSize: 10,
   color: C.muted,
   letterSpacing: '0.08em',
   textTransform: 'uppercase' as const,
+}
+
+function DemoModeSwitcher({ mode, onChange }: { mode: 'patient' | 'therapist'; onChange: (mode: 'patient' | 'therapist') => void }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 16,
+        right: 16,
+        zIndex: 50,
+        display: 'flex',
+        gap: 4,
+        padding: 4,
+        borderRadius: 999,
+        border: `1px solid ${C.rim}`,
+        background: 'rgba(10, 15, 20, 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35)',
+      }}
+    >
+      {(['patient', 'therapist'] as const).map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onChange(item)}
+          style={{
+            border: 'none',
+            borderRadius: 999,
+            padding: '8px 14px',
+            fontSize: 12,
+            fontWeight: 700,
+            fontFamily: "'DM Sans', sans-serif",
+            background: mode === item ? C.lime : 'transparent',
+            color: mode === item ? C.black : C.bone,
+          }}
+        >
+          {item === 'patient' ? 'Patient app' : 'Therapist portal'}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function MobileRestrictedNotice({ onBack }: { onBack: () => void }) {
+  return (
+    <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24, textAlign: 'center' }}>
+      <div style={{ maxWidth: 320, display: 'grid', gap: 14, justifyItems: 'center' }}>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 26, color: C.bone, lineHeight: 1.1 }}>
+          View on desktop for the full demo
+        </div>
+        <p style={{ color: C.muted, fontSize: 13, lineHeight: 1.55 }}>
+          The therapist portal is designed for larger screens. Open this demo on a computer to explore the PT dashboard, or continue with the patient experience here.
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          style={{ border: 'none', borderRadius: 10, background: C.lime, color: C.black, padding: '12px 20px', fontWeight: 800, fontSize: 13 }}
+        >
+          Continue as patient
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function TherapistDemo({ onExit }: { onExit: () => void }) {
+  const pt = usePtDemoState()
+
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: C.black, color: C.muted, display: 'grid', placeItems: 'center' }}>Loading therapist portal...</div>}>
+      <PtPortalView
+        user={{ name: 'Dr. Rivera' }}
+        patients={pt.patients}
+        selectedPatientId={pt.selectedPatientId}
+        reports={pt.reports}
+        checkIns={pt.checkIns}
+        threads={pt.threads}
+        activeThreadId={pt.activeThreadId}
+        exerciseNames={pt.exerciseNames}
+        onSelectPatient={pt.onSelectPatient}
+        onSignOut={onExit}
+        onResetDemo={pt.onResetDemo}
+        onSendMessage={pt.onSendMessage}
+        onAssignExercise={pt.onAssignExercise}
+        onUnassignExercise={pt.onUnassignExercise}
+        onUpdateExerciseCadence={pt.onUpdateExerciseCadence}
+        onUpdateExerciseDose={pt.onUpdateExerciseDose}
+        onMarkReportReviewed={pt.onMarkReportReviewed}
+      />
+    </Suspense>
+  )
 }
 
 function makePatientProfile(patient: PatientRecord | null, plan: RehabPlanRecord | null, session: Session | null, override?: Record<string, unknown> | null) {
@@ -927,6 +1024,9 @@ export default function RehabPro() {
   const [progressLogs, setProgressLogs] = useState<ProgressLog[]>([])
   const [tab, setTab] = useState('home')
   const [demoProfile, setDemoProfile] = useState<Record<string, unknown> | null>(null)
+  const [demoMode, setDemoMode] = useState<'patient' | 'therapist'>('patient')
+  const isDesktop = useIsDesktop()
+  const demoSwitcher = isDesktop ? <DemoModeSwitcher mode={demoMode} onChange={setDemoMode} /> : null
 
   const loadPatientData = async (activeSession: Session) => {
     const currentPatient = await getCurrentPatient(activeSession.user.id)
@@ -1218,24 +1318,52 @@ export default function RehabPro() {
     : []
   const completionHistory = demoProfile ? RETURNING_PATIENT_COMPLETION_HISTORY : []
 
+  if (demoMode === 'therapist') {
+    if (!isDesktop) {
+      return (
+        <Shell>
+          <MobileRestrictedNotice onBack={() => setDemoMode('patient')} />
+        </Shell>
+      )
+    }
+    return (
+      <>
+        {demoSwitcher}
+        <TherapistDemo onExit={() => setDemoMode('patient')} />
+      </>
+    )
+  }
+
   if (authLoading) {
     return (
       <Shell>
+        {demoSwitcher}
         <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: C.muted }}>Loading RehabPro...</div>
       </Shell>
     )
   }
 
   if (!session && !demoProfile) {
-    return <AuthScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onUseReturningDemo={handleUseReturningDemo} loading={actionLoading} error={error} message={message} />
+    return (
+      <>
+        {demoSwitcher}
+        <AuthScreen onSignIn={handleSignIn} onSignUp={handleSignUp} onUseReturningDemo={handleUseReturningDemo} loading={actionLoading} error={error} message={message} />
+      </>
+    )
   }
 
   if (!patient) {
-    return <IntakeView onSubmit={handleSubmitIntake} loading={actionLoading} error={error} />
+    return (
+      <>
+        {demoSwitcher}
+        <IntakeView onSubmit={handleSubmitIntake} loading={actionLoading} error={error} />
+      </>
+    )
   }
 
   return (
     <>
+      {demoSwitcher}
       <AppStyles />
       <div
         style={{
@@ -1254,10 +1382,10 @@ export default function RehabPro() {
         <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${C.rim}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 12 }}>
             <div>
-              <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: '0.04em', lineHeight: 1 }}>
+              <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color: C.bone, letterSpacing: '0.04em', lineHeight: 1 }}>
                 REHAB<span style={{ color: C.lime }}>PRO</span>
               </div>
-              <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, letterSpacing: '0.08em', marginTop: 6 }}>
+              <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, letterSpacing: '0.08em', marginTop: 6 }}>
                 {patientProfile?.name} · {patient.rehab_phase.toUpperCase()}
               </div>
             </div>
@@ -1324,7 +1452,7 @@ export default function RehabPro() {
                 <div aria-hidden="true" style={{ height: 21, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, lineHeight: 1, color: active ? C.lime : C.ghost }}>
                   {item.icon}
                 </div>
-                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Bebas Neue', cursive", fontSize: 11, lineHeight: 1, letterSpacing: '0.08em', color: active ? C.lime : C.muted }}>
+                <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: "'Manrope', sans-serif", fontSize: 11, lineHeight: 1, letterSpacing: '0.08em', color: active ? C.lime : C.muted }}>
                   {item.label}
                 </div>
               </button>

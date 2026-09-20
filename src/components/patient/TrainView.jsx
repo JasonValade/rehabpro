@@ -51,7 +51,7 @@ function ExerciseCard({ item, index, onToggle, onDetails }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 15, color: C.bone }}>{item.name}</div>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: C.muted }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: C.muted }}>
           {item.sets} × {item.reps}
           {item.load ? ` · ${item.load} lbs` : ""}
         </div>
@@ -87,7 +87,7 @@ function RatingField({ label, value, onChange, lowLabel, highLabel, color }) {
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, marginBottom: 9 }}>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 13, color: C.bone, fontWeight: 600 }}>{label}</div>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 24, color }}>{value}<span style={{ fontSize: 12, color: C.muted }}> /10</span></div>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 24, color }}>{value}<span style={{ fontSize: 12, color: C.muted }}> /10</span></div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(11, 1fr)", gap: 3 }}>
         {Array.from({ length: 11 }, (_, rating) => (
@@ -104,7 +104,7 @@ function RatingField({ label, value, onChange, lowLabel, highLabel, color }) {
               border: `1px solid ${value === rating ? color : C.rim}`,
               background: value === rating ? color + "25" : C.deep,
               color: value === rating ? color : C.muted,
-              fontFamily: "'Fira Code', monospace",
+              fontFamily: "'DM Sans', sans-serif",
               fontSize: 9,
             }}
           >
@@ -112,7 +112,7 @@ function RatingField({ label, value, onChange, lowLabel, highLabel, color }) {
           </button>
         ))}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "'Fira Code', monospace", fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontFamily: "'DM Sans', sans-serif", fontSize: 8, color: C.muted, textTransform: "uppercase", letterSpacing: "0.06em" }}>
         <span>{lowLabel}</span>
         <span>{highLabel}</span>
       </div>
@@ -143,7 +143,7 @@ function SessionCheckIn({ completed, total, onSubmit }) {
   if (submitted) {
     return (
       <div style={{ padding: 16, borderRadius: 16, background: C.limeDim, border: `1px solid ${C.lime}55` }}>
-        <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 22, color: C.lime }}>SESSION SAVED</div>
+        <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 22, color: C.lime }}>SESSION SAVED</div>
         <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, lineHeight: 1.5, marginTop: 4 }}>
           Your check-in and {completed}/{total} completion have been added to Progress.
         </div>
@@ -155,7 +155,7 @@ function SessionCheckIn({ completed, total, onSubmit }) {
     <div style={{ padding: 16, borderRadius: 16, background: C.panel, border: `1px solid ${isOpen ? C.lime + "60" : C.rim}` }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14 }}>
         <div>
-          <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 9, color: C.lime, letterSpacing: "0.1em", textTransform: "uppercase" }}>Finished for today?</div>
+          <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 9, color: C.lime, letterSpacing: "0.1em", textTransform: "uppercase" }}>Finished for today?</div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, lineHeight: 1.5, marginTop: 6 }}>
             Submit even if you skipped exercises. Your progress will show {completed} complete and {skipped} skipped.
           </div>
@@ -233,10 +233,10 @@ export function TrainView({ rehabItems, setRehabItems, onSubmitCheckIn }) {
             ←
           </button>
           <div style={{ flex: 1 }}>
-            <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+            <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 10, color: C.muted, textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
               Back to plan
             </div>
-            <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
+            <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
               Exercise details
             </div>
           </div>
@@ -253,14 +253,14 @@ export function TrainView({ rehabItems, setRehabItems, onSubmitCheckIn }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontFamily: "'Bebas Neue', cursive", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
+          <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color: C.bone, letterSpacing: "0.04em" }}>
             {"Today's Knee Rehab"}
           </div>
           <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 12, color: C.muted, marginTop: 4 }}>
             Halfway-through ACL + meniscus plan. Discomfort is fine, pain is not.
           </div>
         </div>
-        <div style={{ fontFamily: "'Fira Code', monospace", fontSize: 11, color: completed === total ? C.lime : C.muted }}>
+        <div style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 11, color: completed === total ? C.lime : C.muted }}>
           {completed}/{total} complete
         </div>
       </div>
