@@ -606,11 +606,6 @@ function AuthScreen({
                 Password
                 <input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete={mode === 'signup' ? 'new-password' : 'current-password'} required minLength={6} style={fieldStyle} />
               </label>
-              {!isSupabaseConfigured ? (
-                <div role="alert" style={{ border: `1px solid ${C.amber}55`, background: C.amberDim, color: C.bone, borderRadius: 8, padding: 12, fontSize: 12, lineHeight: 1.5 }}>
-                  Supabase is not configured yet. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to your environment.
-                </div>
-              ) : null}
               {error ? <div role="alert" style={{ color: C.red, fontSize: 12 }}>{error}</div> : null}
               {message ? <div style={{ color: C.lime, fontSize: 12, lineHeight: 1.45 }}>{message}</div> : null}
               <button type="submit" disabled={loading || !isSupabaseConfigured} style={{ border: 'none', borderRadius: 10, background: C.lime, color: C.black, padding: '14px 16px', fontWeight: 800, opacity: loading || !isSupabaseConfigured ? 0.5 : 1 }}>
