@@ -15,6 +15,7 @@ dist
 .vscode
 dist-ssr
 *.local
+/.agents/skills/
 
 # Editor directories and files
 .vscode/*

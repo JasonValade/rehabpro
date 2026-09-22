@@ -848,6 +848,14 @@ export function PtPortalStyles() {
           border-radius: 7px;
           padding: 11px 12px;
           min-width: 0;
+          container-type: inline-size;
+        }
+        .pt-trend-badge-value {
+          font-family: 'Manrope', sans-serif;
+          font-size: clamp(18px, 13cqi, 28px);
+          line-height: 1;
+          margin-top: 6px;
+          overflow-wrap: anywhere;
         }
         .pt-progress-check-row {
           border: 1px solid ${C.rim};

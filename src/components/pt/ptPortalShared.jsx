@@ -188,7 +188,7 @@ export function TrendBadge({ label, value, color }) {
   return (
     <div className="pt-trend-badge">
       <Label>{label}</Label>
-      <div style={{ fontFamily: "'Manrope', sans-serif", fontSize: 28, color, lineHeight: 1, marginTop: 6 }}>{value}</div>
+      <div className="pt-trend-badge-value" style={{ color }}>{value}</div>
     </div>
   );
 }
